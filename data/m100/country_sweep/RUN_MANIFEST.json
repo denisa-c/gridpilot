@@ -1,0 +1,24 @@
+{
+  "git_sha": "unknown",
+  "command_line": "scripts/multicountry/replay_country_sweep.py --jobs data/traces/m100_real_jobs.parquet --grids configs/grids/SE.yaml,configs/grids/FR.yaml,configs/grids/CH.yaml,configs/grids/IT.yaml,configs/grids/DE.yaml,configs/grids/PL.yaml --pue-yaml raps/config/marconi100.yaml --mw 1,10,50 --fsla-mechanisms none,M0,M1,M2,M3 --pue-mechanisms none,GridPilot-PUE --seeds 8 --workers 4 --output-dir data/m100/country_sweep/ --force",
+  "args": {
+    "jobs": "data/traces/m100_real_jobs.parquet",
+    "grids": "configs/grids/SE.yaml,configs/grids/FR.yaml,configs/grids/CH.yaml,configs/grids/IT.yaml,configs/grids/DE.yaml,configs/grids/PL.yaml",
+    "mw": "1,10,50",
+    "fsla_mechanisms": "none,M0,M1,M2,M3",
+    "pue_mechanisms": "none,GridPilot-PUE",
+    "pue_yaml": "raps/config/marconi100.yaml",
+    "seeds": "8",
+    "seed_base": "20260517",
+    "workers": "4",
+    "output_dir": "data/m100/country_sweep",
+    "time_step": "3600",
+    "node_power_kw": "1.5",
+    "force": "True",
+    "quiet": "False"
+  },
+  "python_version": "3.14.0 (main, Oct  7 2025, 09:34:52) [Clang 17.0.0 (clang-1700.0.13.3)]",
+  "platform": "macOS-15.5-arm64-arm-64bit-Mach-O",
+  "hostname": "tsf-444-wpa-7-192.epfl.ch",
+  "wall_time_s": 78.92279005050659
+}

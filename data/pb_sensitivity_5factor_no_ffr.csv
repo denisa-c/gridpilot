@@ -1,0 +1,9 @@
+run,x_alpha_concentration_scale,x_diurnal_ci_amplitude_pct,x_chiller_cop_slope,x_pump_affinity_floor,x_fan_affinity_exponent,response_pct
+1,1,1,1,-1,1,-9.3649
+2,-1,1,1,1,-1,-9.3649
+3,-1,-1,1,1,1,7.0227
+4,1,-1,-1,1,1,7.0227
+5,1,1,-1,-1,1,-9.3649
+6,1,1,1,-1,-1,-9.3649
+7,-1,1,1,1,-1,-9.3649
+8,-1,-1,-1,-1,-1,7.0227

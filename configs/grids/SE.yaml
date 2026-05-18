@@ -1,0 +1,23 @@
+country_code: SE
+country_name: Sweden
+entsoe_zone: 10YSE-1--------K
+ci_trajectory:
+  2025: 11
+  2028: 9
+  2032: 7
+  source: >
+    Energiforsk 2024 electricity-mix factsheet, EEA 2024 country profile,
+    Ember monthly tracker.  Sweden's grid is hydro (~45 %) + nuclear (~30 %)
+    + wind (~20 %) + biomass; the resulting annual mean CI is the lowest
+    in the EU outside Norway.
+ffr_participation: 0.10
+ffr_market: Svenska kraftnät / Nordic Balancing Model (FCR-N, FCR-D, aFRR)
+prequalification_reference: Svk Tekniska kravbeskrivning 2024
+notes: >
+  Stress case for the low-CI tail.  Almost every hour is cleaner than the
+  EU mean, so absolute savings from temporal shifting are small and the
+  marginal lift from f-SLA elicitation is the largest *fraction* of the
+  total reduction (the few high-CI hours dominate).  Diurnal CI amplitude
+  is tight (~±10 %) and weekend factor is ~0.95.
+diurnal_amplitude: 0.10
+weekend_factor: 0.95

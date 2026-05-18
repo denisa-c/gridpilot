@@ -1,0 +1,29 @@
+{
+  "H1_declared_tier_lift": {
+    "lifts_pct": {
+      "M0": -56.60698682372295,
+      "M1": -56.60698682372295,
+      "M2": -56.60698682372295,
+      "M3": -56.60698682372295
+    },
+    "passed": false
+  },
+  "H2_nom_ic": {
+    "m3_nom_ic_violation_rate": 0.0,
+    "m0_nom_ic_violation_rate": 0.0,
+    "passed": true
+  },
+  "H3_fairness": {
+    "baseline_jain": 0.3501090672703042,
+    "min_ratio": 0.9346927834871128,
+    "passed": false
+  },
+  "H4_swf_dominance": {
+    "swf_m2_alpha2": -446999999999.99994,
+    "swf_m0_alpha2": -446999999999.99994,
+    "passed": true
+  },
+  "H5_latency_monotone": {
+    "deferred_to_figure_script": true
+  }
+}

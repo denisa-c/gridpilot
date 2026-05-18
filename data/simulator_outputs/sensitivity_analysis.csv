@@ -1,0 +1,9 @@
+run,chiller_cop_slope,fan_exponent,ffr_participation,marginal_ci,pid_kd,net_red_pct,chiller_effect_pp,fan_effect_pp,ffr_effect_pp,marg_effect_pp,pid_effect_pp
+1,high,high,high,low,high,27.43,-0.35,0.25,2.5,-1.5,0.375
+2,low,high,high,high,low,30.63,0.35,0.25,2.5,1.5,-0.125
+3,high,low,high,high,high,29.93,-0.35,-0.25,2.5,1.5,0.375
+4,low,high,low,high,high,26.13,0.35,0.25,-2.5,1.5,0.375
+5,low,low,high,low,high,27.63,0.35,-0.25,2.5,-1.5,0.375
+6,low,low,low,high,low,25.13,0.35,-0.25,-2.5,1.5,-0.125
+7,high,low,low,low,low,21.43,-0.35,-0.25,-2.5,-1.5,-0.125
+8,high,high,low,low,high,22.43,-0.35,0.25,-2.5,-1.5,0.375

@@ -1,0 +1,19 @@
+Running bursty_alternating for 40.0s on Tesla V100-SXM2-32GB
+{
+  "workload": "bursty_alternating",
+  "size": 4096,
+  "iterations": 3958,
+  "bursts": 9,
+  "compute_s": 1.0,
+  "idle_s": 0.5,
+  "elapsed_s": 44.252485036849976,
+  "iters_per_s": 89.44130474715918
+}
+Sampling 1 GPU(s) at 200 Hz
+Running: python3 /home/dconstan/gridpilot/v100_experiment_kit/workloads/workload_definitions.py --workload bursty_alternating --duration 40 --seed 42
+
+✓ Telemetry: /home/dconstan/gridpilot/v100_experiment_kit/results/E2_inner_loop_20260428_142158/telemetry.csv
+✓ Metadata:  /home/dconstan/gridpilot/v100_experiment_kit/results/E2_inner_loop_20260428_142158/telemetry.meta.json
+  Samples:   8915
+  Achieved:  192.8 Hz per GPU
+  Exit code: 0

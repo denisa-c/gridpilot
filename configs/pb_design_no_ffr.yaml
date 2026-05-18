@@ -1,0 +1,69 @@
+# PECS 2026 Plackett-Burman 5-factor 8-run design (no FFR factors)
+# ----------------------------------------------------------------
+# Replaces the old FFR-driven PB design with five PUE/scheduler/prior
+# factors, none of which depend on frequency-response participation.
+#
+# Each factor has a low (-1) and high (+1) level; the 8 design rows are
+# the standard PB orthogonal design.
+
+factors:
+  alpha_concentration_scale:
+    description: |
+      Multiplicative scale on the f-SLA Dirichlet concentration
+      (1.0 = default α = (3, 3, 2.5, 1.5)).  Larger → tighter prior.
+    low:  0.5
+    high: 2.0
+
+  diurnal_ci_amplitude_pct:
+    description: |
+      Diurnal carbon-intensity swing as a fraction of the annual mean.
+      Default 25 % corresponds to the mean CH/IT/DE 2020-2024 ENTSO-E
+      diurnal envelope.
+    low:  0.15
+    high: 0.40
+
+  chiller_cop_slope:
+    description: |
+      d COP / dT (K^-1) above the 25 °C reference.  More negative means
+      the chiller degrades faster with ambient temperature.
+    low:  -0.07
+    high: -0.03
+
+  pump_affinity_floor:
+    description: |
+      L^2 floor on the pump-affinity term (default 0.20 in §3 Eq. 3).
+    low:  0.10
+    high: 0.30
+
+  fan_affinity_exponent:
+    description: |
+      Exponent in the air-side cube law (default 3.0).
+    low:  2.6
+    high: 3.4
+
+# Standard 5-factor 8-run Plackett-Burman design (rows are runs, columns
+# are factors; entries are the level signs −1 / +1).
+design:
+  - run: 1
+    levels: [+1, +1, +1, -1, +1]
+  - run: 2
+    levels: [-1, +1, +1, +1, -1]
+  - run: 3
+    levels: [-1, -1, +1, +1, +1]
+  - run: 4
+    levels: [+1, -1, -1, +1, +1]
+  - run: 5
+    levels: [+1, +1, -1, -1, +1]
+  - run: 6
+    levels: [+1, +1, +1, -1, -1]
+  - run: 7
+    levels: [-1, +1, +1, +1, -1]
+  - run: 8
+    levels: [-1, -1, -1, -1, -1]
+
+response:
+  metric: "facility_co2_red_pct"
+  target_grid: "DE"
+  target_year: 2025
+  target_scale_mw: 50
+  baseline_value_pct: 9.3   # operational-only DE 2025 baseline (data/operational_only_2025.csv)

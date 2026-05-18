@@ -1,0 +1,14 @@
+{
+  "workload": "inference_memory_bound",
+  "n_trials": 30,
+  "median_ms": 97.471,
+  "mean_ms": 97.12166666666667,
+  "stdev_ms": 1.5314967286563372,
+  "p95_ms": 98.98,
+  "max_ms": 99.012,
+  "min_ms": 93.615,
+  "budget_ms": 700,
+  "n_pass": 30,
+  "n_fail": 0,
+  "pass_rate": 1.0
+}

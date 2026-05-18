@@ -1,0 +1,25 @@
+country_code: PL
+country_name: Poland
+entsoe_zone: 10YPL-AREA-----S
+ci_trajectory:
+  2025: 612
+  2028: 480
+  2032: 360
+  source: >
+    KOBiZE 2024 National Inventory Report, EEA 2024 country profile,
+    Ember monthly tracker.  Poland's grid is hard coal (~38 %) +
+    lignite (~22 %) + gas (~12 %) + wind (~15 %) + biomass; CI is the
+    highest in the EU outside the small Balkan grids.  The 2028/2032
+    trajectory follows PEP2040 + REPowerEU coal-phase-out commitments.
+ffr_participation: 0.12
+ffr_market: PSE / TGE balancing reserves (FCR + aFRR + mFRR)
+prequalification_reference: PSE IRiESP 2024
+notes: >
+  Stress case for the high-CI tail.  Most hours are dirty so absolute
+  CO2 savings from temporal shifting are largest, but f-SLA elicitation
+  hits diminishing returns: the marginal lift from extending the
+  deferral window is small because every window is dirty.  Diurnal
+  amplitude ~±28 % driven by daily wind variation.  Weekend factor
+  ~0.88 (heavy industrial demand drop).
+diurnal_amplitude: 0.28
+weekend_factor: 0.88

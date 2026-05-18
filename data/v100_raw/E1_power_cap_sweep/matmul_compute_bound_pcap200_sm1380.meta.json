@@ -1,0 +1,30 @@
+{
+  "hostname": "ecocloud-exp06",
+  "command": [
+    "python3",
+    "/home/dconstan/gridpilot/v100_experiment_kit/workloads/workload_definitions.py",
+    "--workload",
+    "matmul_compute_bound",
+    "--duration",
+    "30",
+    "--seed",
+    "42"
+  ],
+  "rate_hz_requested": 100,
+  "cpu_rate_hz_requested": 10,
+  "start_wallclock": 1777377277.4435337,
+  "gpus": [
+    {
+      "index": 0,
+      "name": "Tesla V100-SXM2-32GB",
+      "uuid": "GPU-c0334254-f907-1d97-bbaa-5819dce37c24",
+      "power_limit_start_w": 200.0,
+      "power_limit_end_w": 200.0
+    }
+  ],
+  "end_wallclock": 1777377313.0738122,
+  "return_code": 0,
+  "sample_count": 3520,
+  "duration_s": 35.63027858734131,
+  "rate_hz_achieved": 98.7923793907854
+}

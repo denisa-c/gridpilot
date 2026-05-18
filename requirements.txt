@@ -1,0 +1,16 @@
+# Core scientific Python (figure generation, data analysis)
+numpy>=1.24,<2.0
+pandas>=2.0,<3.0
+matplotlib>=3.7,<4.0
+scipy>=1.11,<2.0
+
+# For the gridpilot_replay simulator (separate codebase, tracked here as
+# environment requirement for reproducibility verification)
+pyyaml>=6.0
+networkx>=3.1
+
+# Optional: for ENTSO-E live data fetching (requires API key)
+# entsoe-py>=0.6.6
+
+# Optional: for ExaDigiT/RAPS integration (separate install)
+# See docs/EXADIGIT_RAPS_SETUP.md

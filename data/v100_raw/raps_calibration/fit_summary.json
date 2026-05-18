@@ -1,0 +1,23 @@
+{
+  "bursty_alternating": {
+    "n_cells": 12,
+    "in_sample_mae_w": 1.1289416015664806,
+    "in_sample_rmse_w": 1.6396454024472864,
+    "in_sample_r2": 0.9988678630124099,
+    "loocv_mae_pct": 2.9389311501284645
+  },
+  "inference_memory_bound": {
+    "n_cells": 12,
+    "in_sample_mae_w": 1.7446008615416595,
+    "in_sample_rmse_w": 2.925570034199213,
+    "in_sample_r2": 0.9972858421404865,
+    "loocv_mae_pct": 4.710568026349937
+  },
+  "matmul_compute_bound": {
+    "n_cells": 12,
+    "in_sample_mae_w": 1.22414404179462,
+    "in_sample_rmse_w": 1.6876491508867937,
+    "in_sample_r2": 0.9990306336514165,
+    "loocv_mae_pct": 2.720830795680443
+  }
+}

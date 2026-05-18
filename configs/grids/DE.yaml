@@ -1,0 +1,16 @@
+country_code: DE
+country_name: Germany
+entsoe_zone: 10Y1001A1001A82H
+ci_trajectory:
+  2025: 295
+  2028: 192
+  2032: 90
+  source: EEG 2023 Renewable Energy Sources Act
+ffr_participation: 0.80
+ffr_market: 50Hertz / TenneT / Amprion / TransnetBW joint balancing
+prequalification_reference: Pedro et al. 2023 Utilities Policy
+notes: >
+  Germany's coal-heavy reserve mix and large balancing market (80% FFR
+  participation rate) maximises the exogenous channel. A 50 MW deployment
+  saves 104.5 t-CO2/day in 2025, the largest absolute saving in the
+  three-country study.

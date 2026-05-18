@@ -1,0 +1,6 @@
+factor,main_effect_pp
+alpha_concentration_scale,-4.0969
+diurnal_ci_amplitude_pct,-16.3876
+chiller_cop_slope,-7.6476
+pump_affinity_floor,4.0969
+fan_affinity_exponent,4.0969

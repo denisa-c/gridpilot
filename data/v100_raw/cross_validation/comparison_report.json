@@ -1,0 +1,68 @@
+{
+  "timestamp": "2026-04-29T22:35:10.005027+00:00",
+  "country": "IT",
+  "cross_validation": [
+    {
+      "axis": 1,
+      "name": "per-GPU mean power",
+      "v100_w": 121.2,
+      "m100_w": 237.0,
+      "m100_band_w": [
+        175.0,
+        275.0
+      ],
+      "pct_err": -48.85,
+      "passed": null,
+      "status": "below_band",
+      "note": "M100 reference from Antici et al. 2023 PM100, https://doi.org/10.1145/3624062.3624277. V100 cells run at low-power probe regime (121 W/GPU best-efficiency cell, vs M100 production median 237 W/GPU). This is expected for E1 cells at 150 W power-cap; to land in-band, repeat E1 with pcaps \u2265 250 W or pick the worst-efficiency cell instead of best-efficiency."
+    },
+    {
+      "axis": 3,
+      "name": "AR(4) MAE on multi-phase",
+      "v100_bursty_mae_w": 19.66,
+      "m100_mae_w": null,
+      "passed": null,
+      "status": "v100_only",
+      "note": "M100-side AR(4) requires separate replay run with predictor instrumentation (Carastan-Santos et al. 2025 protocol)"
+    },
+    {
+      "axis": 7,
+      "name": "Per-workload CO\u2082 reduction (M100, country=IT)",
+      "carbonscaler_max_pct": 50.31104192391335,
+      "gridpilot_max_pct": 38.82571725412559,
+      "delta_pp": -11.485324669787758,
+      "status": "neutral",
+      "note": "Net CO\u2082 axis only valid if E7 passed (FFR validity gate)"
+    },
+    {
+      "axis": 9,
+      "name": "Scaling envelope @ 980-node scale",
+      "v100_projected_kw": 1014.0,
+      "m100_published_kw": 1000.0,
+      "pct_err": 1.4,
+      "threshold_pct": 10.0,
+      "passed": true,
+      "status": "pass",
+      "note": "M100 reference is the Borghesi 2023 published peak facility power (~1 MW for the IT side; full system peak is higher)"
+    }
+  ],
+  "v100_only_findings": {
+    "E4 closed-loop relative MAE (bursty_alternating)": "11.08%",
+    "E4 closed-loop relative MAE (inference_memory_bound)": "1.68%",
+    "E4 closed-loop relative MAE (matmul_compute_bound)": "2.12%",
+    "E6 fairness (budget_600w)": "0.333",
+    "E6 fairness (budget_750w)": "0.333",
+    "E6 fairness (budget_900w)": "0.333",
+    "E7 FFR median latency (bursty_alternating)": "97.797 ms (budget 700)",
+    "E7 FFR median latency (inference_memory_bound)": "97.471 ms (budget 700)",
+    "E7 FFR median latency (matmul_compute_bound)": "97.221 ms (budget 700)",
+    "E7 all-workloads pass": true
+  },
+  "m100_only_findings": {
+    "M100 GridPilot CO2 reduction range (country=IT)": "25.8% to 38.8% across cells"
+  },
+  "sources": {
+    "v100_kit_root": "/home/dconstan/gridpilot/kits/v100_experiment_kit",
+    "cs_root": "/home/dconstan/gridpilot/kits/v100_experiment_kit/../carbonscaler_beat"
+  }
+}

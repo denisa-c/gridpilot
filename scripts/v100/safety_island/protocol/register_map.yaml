@@ -1,0 +1,68 @@
+# register_map.yaml — Modbus TCP register map for the safety island.
+# Used when the OPC UA option is not available. Read-only and read-write
+# regions are clearly separated. All 16-bit registers are big-endian.
+#
+# Reference: Modbus Application Protocol Specification V1.1b3, Section 6
+# (function codes 03 = read holding, 16 = write multiple holding).
+
+input_registers:  # function code 04, read-only by supervisor
+  0x0000: {name: "ISLAND_FW_VERSION_MAJOR",  type: u16}
+  0x0001: {name: "ISLAND_FW_VERSION_MINOR",  type: u16}
+  0x0002: {name: "ISLAND_FW_VERSION_PATCH",  type: u16}
+  0x0003: {name: "ISLAND_UPTIME_S_HI",       type: u16}
+  0x0004: {name: "ISLAND_UPTIME_S_LO",       type: u16}
+  0x0010: {name: "FREQ_MEAS_HZ_x1000_HI",    type: u16, doc: "Current frequency in 0.001 Hz; 50000 = 50.000 Hz"}
+  0x0011: {name: "FREQ_MEAS_HZ_x1000_LO",    type: u16}
+  0x0012: {name: "FREQ_MEAS_AGE_US_HI",      type: u16}
+  0x0013: {name: "FREQ_MEAS_AGE_US_LO",      type: u16}
+  0x0020: {name: "HEALTH_FLAGS",             type: u16, doc: "Bit 0=FREQ_OK, 1=ACTUATION_OK, 2=TABLE_LOADED, 3=BID_OPEN"}
+  0x0021: {name: "FAULT_CODE",               type: u16}
+  0x0022: {name: "FAULT_DETAIL_HI",          type: u16}
+  0x0023: {name: "FAULT_DETAIL_LO",          type: u16}
+  0x0030: {name: "LAST_ACTIVATION_ID_HI",    type: u16}
+  0x0031: {name: "LAST_ACTIVATION_ID_LO",    type: u16}
+  0x0032: {name: "LAST_ACTIVATION_LATENCY_US_HI", type: u16}
+  0x0033: {name: "LAST_ACTIVATION_LATENCY_US_LO", type: u16}
+  0x0040: {name: "WCET_OBSERVED_US_HI",      type: u16, doc: "Maximum observed activation-path WCET"}
+  0x0041: {name: "WCET_OBSERVED_US_LO",      type: u16}
+
+holding_registers:  # function code 03/06/16, read-write by supervisor
+  0x1000: {name: "BID_WINDOW_OPEN",          type: u16, doc: "1 = open, 0 = closed"}
+  0x1001: {name: "BID_START_UNIX_S_HI",      type: u16}
+  0x1002: {name: "BID_START_UNIX_S_LO",      type: u16}
+  0x1003: {name: "BID_END_UNIX_S_HI",        type: u16}
+  0x1004: {name: "BID_END_UNIX_S_LO",        type: u16}
+  0x1010: {name: "CONTRACTED_CAPACITY_W_HI", type: u16}
+  0x1011: {name: "CONTRACTED_CAPACITY_W_LO", type: u16}
+  0x1012: {name: "ACTIVATION_THRESHOLD_MHZ", type: i16, doc: "Signed mHz from 50.000 Hz; -200 = 49.800 Hz"}
+  0x1013: {name: "DEACTIVATION_THRESHOLD_MHZ", type: i16, doc: "Signed mHz; default -100 = 49.900 Hz"}
+  0x1020: {name: "TABLE_N_ENTRIES",          type: u16, range: [0, 32]}
+  # Per-GPU activation table starts at 0x1100
+  # Each entry is 4 registers = 8 bytes:
+  #   +0: gpu_index (u16)
+  #   +1: normal_pcap_w (u16)
+  #   +2: ffr_pcap_w (u16)
+  #   +3: reserved (u16)
+  0x1100: {name: "TABLE_GPU0_INDEX",         type: u16}
+  0x1101: {name: "TABLE_GPU0_NORMAL_PCAP_W", type: u16}
+  0x1102: {name: "TABLE_GPU0_FFR_PCAP_W",    type: u16}
+  0x1103: {name: "TABLE_GPU0_RESERVED",      type: u16}
+  # ... entries 1..31 follow the same pattern, stride 4 registers
+  0x11FC: {name: "TABLE_GPU31_RESERVED",     type: u16}
+  0x1200: {name: "TABLE_CRC32_HI",           type: u16, doc: "Set last; island validates and swaps in"}
+  0x1201: {name: "TABLE_CRC32_LO",           type: u16}
+
+# Coil bits  (function code 01/05, read-write by supervisor) — single-bit commands
+coils:
+  0x0000: {name: "ARM_FFR",                  doc: "Set 1 to arm; island will activate on threshold breach"}
+  0x0001: {name: "DISARM_FFR",               doc: "Set 1 to disarm immediately"}
+  0x0002: {name: "FORCE_TEST_ACTIVATION",    doc: "Test-only; triggers a synthetic activation event"}
+  0x0010: {name: "RESET_FAULT",              doc: "Clear fault state after corrective action"}
+
+# Discrete input bits (function code 02, read-only by supervisor)
+discrete_inputs:
+  0x0000: {name: "FREQ_SENSOR_OK"}
+  0x0001: {name: "ACTUATION_BACKEND_OK"}
+  0x0002: {name: "TABLE_LOADED"}
+  0x0003: {name: "FFR_ARMED"}
+  0x0004: {name: "ACTIVATION_IN_PROGRESS"}

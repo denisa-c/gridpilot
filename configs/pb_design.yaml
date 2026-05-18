@@ -1,0 +1,56 @@
+# Plackett-Burman 5-factor sensitivity design for the
+# 26% net-carbon-reduction headline (50 MW Germany 2025).
+#
+# Each factor has a low and high level. Plackett-Burman estimates the
+# main effect of each factor in 8 runs (vs 32 for full 2^5 factorial).
+#
+# Generated with the standard PB-8 design matrix from Plackett &
+# Burman (1946).
+
+factors:
+  - name: ci_profile
+    description: "Grid carbon-intensity profile"
+    low:  "DE_2025"
+    high: "DE_2032"
+    expected_main_effect_pp: 3.5
+
+  - name: workload_mix
+    description: "Workload mix on the cluster"
+    low:  "matmul_dominated"
+    high: "bursty_dominated"
+    expected_main_effect_pp: 2.8
+
+  - name: pue_regime
+    description: "Whether the scheduler accounts for cooling overhead"
+    low:  "constant_pue_1.5"
+    high: "dynamic_pue"
+    expected_main_effect_pp: 2.1
+
+  - name: ffr_participation
+    description: "Whether the cluster bids into the FFR ancillary market"
+    low:  "off"
+    high: "on"
+    expected_main_effect_pp: 1.6
+
+  - name: deadline_tightness
+    description: "Job deadline regime"
+    low:  "fcfs_class"   # 24h delay cap
+    high: "strict"       # 6h delay cap
+    expected_main_effect_pp: 1.2
+
+design_matrix:
+  # 8 runs; +1 = high level, -1 = low level
+  # Standard PB-8 design with 4 factors plus 1 dummy factor for variance estimation
+  runs:
+    - {ci_profile: -1, workload_mix: -1, pue_regime: -1, ffr_participation: -1, deadline_tightness: -1}
+    - {ci_profile: +1, workload_mix: -1, pue_regime: -1, ffr_participation: +1, deadline_tightness: +1}
+    - {ci_profile: -1, workload_mix: +1, pue_regime: -1, ffr_participation: +1, deadline_tightness: +1}
+    - {ci_profile: +1, workload_mix: +1, pue_regime: -1, ffr_participation: -1, deadline_tightness: -1}
+    - {ci_profile: -1, workload_mix: -1, pue_regime: +1, ffr_participation: +1, deadline_tightness: -1}
+    - {ci_profile: +1, workload_mix: -1, pue_regime: +1, ffr_participation: -1, deadline_tightness: +1}
+    - {ci_profile: -1, workload_mix: +1, pue_regime: +1, ffr_participation: -1, deadline_tightness: +1}
+    - {ci_profile: +1, workload_mix: +1, pue_regime: +1, ffr_participation: +1, deadline_tightness: -1}
+
+# Reference: each main effect is computed as the mean response at the
+# +1 level minus the mean response at the -1 level for that factor,
+# averaged across the 8 runs.

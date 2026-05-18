@@ -1,0 +1,15 @@
+country_code: CH
+country_name: Switzerland
+entsoe_zone: 10YCH-SWISSGRIDZ
+ci_trajectory:
+  2025: 30
+  2028: 22
+  2032: 14
+  source: BFE Energy Strategy 2050
+ffr_participation: 0.15
+ffr_market: Swissgrid balancing services
+prequalification_reference: Pedro et al. 2023 Utilities Policy
+notes: >
+  Switzerland's hydro-dominated grid has minimal fossil reserves to displace,
+  so the exogenous channel is small. Its low absolute CI also caps absolute
+  daily savings at 8.5 t-CO2/day for a 50 MW deployment in 2025.

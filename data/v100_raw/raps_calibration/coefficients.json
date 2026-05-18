@@ -1,0 +1,49 @@
+{
+  "calibrated_at": "20260429T220950Z",
+  "source_csv": "/home/dconstan/gridpilot/kits/v100_experiment_kit/results/sweep_20260428_134955/parsed_results.csv",
+  "model": "P_GPU = P_idle + alpha*f + beta*f^2*L + gamma*L",
+  "node": {
+    "n_gpu_per_node": 3,
+    "node_idle_w_estimate": 35.99690512741787,
+    "facility_pue": 1.1,
+    "rectifier_eta": 0.9287
+  },
+  "per_workload": {
+    "bursty_alternating": {
+      "n_cells": 12,
+      "iters_per_s_max": 84.60995804001293,
+      "P_idle": 101.00712646121598,
+      "alpha": -0.19134821810442568,
+      "beta": 8.028262412404941e-05,
+      "gamma": 201.04617354357913,
+      "in_sample_mae_w": 1.1289416015664806,
+      "in_sample_rmse_w": 1.6396454024472864,
+      "in_sample_r2": 0.9988678630124099,
+      "loocv_mae_pct": 2.9389311501284645
+    },
+    "inference_memory_bound": {
+      "n_cells": 12,
+      "iters_per_s_max": 509.84197730477416,
+      "P_idle": 127.1596756697842,
+      "alpha": -0.24648807585383994,
+      "beta": 0.00011879221961801565,
+      "gamma": 206.06910922664446,
+      "in_sample_mae_w": 1.7446008615416595,
+      "in_sample_rmse_w": 2.925570034199213,
+      "in_sample_r2": 0.9972858421404865,
+      "loocv_mae_pct": 4.710568026349937
+    },
+    "matmul_compute_bound": {
+      "n_cells": 12,
+      "iters_per_s_max": 93.72925318945381,
+      "P_idle": 105.50280013719144,
+      "alpha": -0.2011943827553928,
+      "beta": 8.646584331487703e-05,
+      "gamma": 212.78522987248363,
+      "in_sample_mae_w": 1.22414404179462,
+      "in_sample_rmse_w": 1.6876491508867937,
+      "in_sample_r2": 0.9990306336514165,
+      "loocv_mae_pct": 2.720830795680443
+    }
+  }
+}

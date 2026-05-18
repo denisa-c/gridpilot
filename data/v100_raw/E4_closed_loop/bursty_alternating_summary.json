@@ -1,0 +1,9 @@
+{
+  "workload": "bursty_alternating",
+  "n_samples": 21878,
+  "mae_w": 22.981973215101927,
+  "p95_error_w": 137.0,
+  "mean_demand_w": 207.413047810586,
+  "relative_mae": 0.11080292902348918,
+  "duration_s": 299.9948
+}

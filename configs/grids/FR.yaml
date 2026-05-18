@@ -1,0 +1,21 @@
+country_code: FR
+country_name: France
+entsoe_zone: 10YFR-RTE------C
+ci_trajectory:
+  2025: 53
+  2028: 45
+  2032: 36
+  source: >
+    RTE Bilan électrique 2024, EEA 2024 country profile, Ember monthly
+    tracker.  France's grid is nuclear (~65 %) + hydro (~12 %) + wind
+    (~8 %) + gas-peaking; CI is among the lowest large-EU economies.
+ffr_participation: 0.18
+ffr_market: RTE / SO mFRR + aFRR + FCR (NEBEF + Mecanisme d'ajustement)
+prequalification_reference: RTE Règles SI 2024
+notes: >
+  Low-medium CI grid with a nuclear-baseload signature (flat diurnal,
+  modest weekly cycle).  f-SLA elicitation captures the gas-peaking
+  morning/evening ramps; diurnal amplitude is ~±15 % driven by
+  net-load following.  Weekend factor ~0.93.
+diurnal_amplitude: 0.15
+weekend_factor: 0.93

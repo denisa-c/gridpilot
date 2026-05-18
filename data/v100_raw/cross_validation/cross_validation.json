@@ -1,0 +1,45 @@
+[
+  {
+    "axis": 1,
+    "name": "per-GPU mean power",
+    "v100_w": 121.2,
+    "m100_w": 237.0,
+    "m100_band_w": [
+      175.0,
+      275.0
+    ],
+    "pct_err": -48.85,
+    "passed": null,
+    "status": "below_band",
+    "note": "M100 reference from Antici et al. 2023 PM100, https://doi.org/10.1145/3624062.3624277. V100 cells run at low-power probe regime (121 W/GPU best-efficiency cell, vs M100 production median 237 W/GPU). This is expected for E1 cells at 150 W power-cap; to land in-band, repeat E1 with pcaps \u2265 250 W or pick the worst-efficiency cell instead of best-efficiency."
+  },
+  {
+    "axis": 3,
+    "name": "AR(4) MAE on multi-phase",
+    "v100_bursty_mae_w": 19.66,
+    "m100_mae_w": null,
+    "passed": null,
+    "status": "v100_only",
+    "note": "M100-side AR(4) requires separate replay run with predictor instrumentation (Carastan-Santos et al. 2025 protocol)"
+  },
+  {
+    "axis": 7,
+    "name": "Per-workload CO\u2082 reduction (M100, country=IT)",
+    "carbonscaler_max_pct": 50.31104192391335,
+    "gridpilot_max_pct": 38.82571725412559,
+    "delta_pp": -11.485324669787758,
+    "status": "neutral",
+    "note": "Net CO\u2082 axis only valid if E7 passed (FFR validity gate)"
+  },
+  {
+    "axis": 9,
+    "name": "Scaling envelope @ 980-node scale",
+    "v100_projected_kw": 1014.0,
+    "m100_published_kw": 1000.0,
+    "pct_err": 1.4,
+    "threshold_pct": 10.0,
+    "passed": true,
+    "status": "pass",
+    "note": "M100 reference is the Borghesi 2023 published peak facility power (~1 MW for the IT side; full system peak is higher)"
+  }
+]

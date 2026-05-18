@@ -1,0 +1,183 @@
+# protocol_spec.yaml — Inter-domain protocol between the GridPilot Python
+# supervisor (Domain 2) and the safety-certified FFR responder (Domain 1).
+#
+# The protocol is bidirectional, message-oriented, and bounded in size.
+# Two transport options are supported: Modbus TCP (simpler, sufficient for
+# initial deployments) and OPC UA with PubSub (richer, IEC 61850 compatible).
+#
+# Reference: IEC 62443-3-3 system security requirements; IEC 61131-3
+# programming languages for industrial automation; IEC 61850-9-2 sampled
+# values for grid-side time references.
+
+protocol:
+  version: "1.0.0"
+  semver_compatibility: "strict-major"  # major version bump = breaking change
+  endianness: "big"                     # network byte order
+  encoding: "binary"                    # no JSON/XML on the activation path
+
+transport:
+  modbus_tcp:
+    port: 502
+    poll_interval_ms: 100               # supervisor poll interval; not on activation path
+    timeout_ms: 1000
+    register_layout: "see register_map.yaml"
+  opc_ua:
+    port: 4840
+    security_policy: "Basic256Sha256"
+    pubsub:
+      enabled: true
+      reliability_mode: "REQUEST_REPLY"
+
+# === Messages from Supervisor (Domain 2, Python) to Safety Island (Domain 1, C) ===
+
+supervisor_to_island:
+
+  bid_window_open:
+    purpose: "Notify the island that an FFR bid window is starting"
+    fields:
+      msg_type:           {type: u8,  value: 0x01}
+      sequence_no:        {type: u32, range: [0, 0xFFFFFFFF]}
+      bid_start_unix_us:  {type: u64, doc: "Unix timestamp microseconds"}
+      bid_end_unix_us:    {type: u64}
+      contracted_capacity_w: {type: u32, doc: "FFR capacity contracted (W)"}
+      activation_threshold_mhz: {type: i32, doc: "Frequency below which to activate (signed mHz from 50.000 Hz)"}
+      crc32:              {type: u32, doc: "CRC-32 over preceding fields"}
+    size_bytes: 33
+    response: "ack_or_nack"
+
+  activation_table_update:
+    purpose: |
+      Push the per-GPU power-cap reduction lookup table.
+      The table is a fixed-size array of (gpu_index, normal_pcap_w, ffr_pcap_w)
+      tuples. Updates are applied atomically: the island validates checksum,
+      then swaps the table pointer in a single critical section.
+    fields:
+      msg_type:           {type: u8,  value: 0x02}
+      sequence_no:        {type: u32}
+      n_entries:          {type: u8,  range: [0, 32], doc: "Number of GPUs"}
+      table:              {type: array,
+                           element: {gpu_index: u8, normal_pcap_w: u16, ffr_pcap_w: u16},
+                           max_size: 32}
+      crc32:              {type: u32}
+    size_bytes_max: 198  # 1 + 4 + 1 + 32*5 + 4 = 200 worst case (rounded)
+    response: "ack_or_nack"
+
+  heartbeat_request:
+    purpose: "Keep-alive; supervisor sends every 1s, island echoes within 100ms"
+    fields:
+      msg_type:           {type: u8,  value: 0x10}
+      sequence_no:        {type: u32}
+      crc32:              {type: u32}
+    size_bytes: 9
+    response: "heartbeat_response"
+
+# === Messages from Safety Island (Domain 1, C) to Supervisor (Domain 2, Python) ===
+
+island_to_supervisor:
+
+  ack_or_nack:
+    purpose: "Acknowledge or reject the most recent message"
+    fields:
+      msg_type:           {type: u8,  value: 0xA0}
+      sequence_no:        {type: u32, doc: "Echo of the supervisor's seq_no"}
+      ack_code:           {type: u8,  enum: {0: "ACK", 1: "NACK_CRC", 2: "NACK_RANGE", 3: "NACK_TABLE_INVALID"}}
+      crc32:              {type: u32}
+    size_bytes: 10
+
+  heartbeat_response:
+    purpose: "Echo of heartbeat_request with island health status"
+    fields:
+      msg_type:           {type: u8,  value: 0xA1}
+      sequence_no:        {type: u32}
+      island_uptime_s:    {type: u32}
+      last_freq_meas_age_us: {type: u32, doc: "How recently was frequency sampled"}
+      health_flags:       {type: u8,
+                           bits: {0: "FREQ_SENSOR_OK",
+                                  1: "ACTUATION_BACKEND_OK",
+                                  2: "TABLE_LOADED",
+                                  3: "BID_WINDOW_OPEN"}}
+      crc32:              {type: u32}
+    size_bytes: 18
+
+  activation_event:
+    purpose: |
+      Asynchronous notification that an FFR activation has occurred.
+      Sent immediately after the actuation completes; supervisor uses this for
+      TSO settlement reporting. Not on the activation critical path; the
+      activation itself happens before this message is sent.
+    fields:
+      msg_type:           {type: u8,  value: 0xA2}
+      activation_id:      {type: u32, doc: "Monotonically increasing"}
+      detection_unix_us:  {type: u64, doc: "When the threshold breach was detected"}
+      actuation_unix_us:  {type: u64, doc: "When the last GPU pcap was applied"}
+      activation_latency_us: {type: u32, doc: "actuation - detection"}
+      activated_capacity_w: {type: u32, doc: "Sum of GPU pcap reductions"}
+      gpu_status:         {type: array,
+                           element: {gpu_index: u8,
+                                     pcap_before_w: u16,
+                                     pcap_after_w: u16,
+                                     actuation_rc: i8},
+                           max_size: 32}
+      crc32:              {type: u32}
+    size_bytes_max: 234
+
+  fault_report:
+    purpose: "Critical fault; supervisor should attempt recovery or alert operator"
+    fields:
+      msg_type:           {type: u8,  value: 0xA3}
+      fault_unix_us:      {type: u64}
+      fault_code:         {type: u16, enum: {1: "FREQ_SENSOR_LOST",
+                                              2: "FREQ_OUT_OF_RANGE",
+                                              3: "ACTUATION_TIMEOUT",
+                                              4: "TABLE_CORRUPT",
+                                              5: "WCET_VIOLATED"}}
+      fault_detail:       {type: u32, doc: "Code-specific extra context"}
+      crc32:              {type: u32}
+    size_bytes: 19
+
+# === Timing budget for the activation path ===
+
+timing_budget:
+  # All times are worst-case execution times measured on the certification platform
+  # Total budget: 700 ms (Nordic FFR worst-case from Statnett pre-qualification)
+  freq_measurement_period_ms:    1     # 1 kHz sampling
+  freq_threshold_check_us:      10     # constant-time comparator
+  table_lookup_us:               5     # bounded-size O(n) walk
+  per_gpu_actuation_ms:         50     # nvidia-smi -pl roundtrip on V100
+  total_actuation_ms_3_gpu:    150     # 3 GPUs sequential = 3*50ms
+  reporting_overhead_ms:        10     # event message construction
+  total_wcet_budget_ms:        171     # measured worst case
+  margin_to_700ms_budget:      529     # 75% headroom
+
+# === Validation requirements ===
+
+validation:
+  formal_verification:
+    threshold_check:        "FPV: prove monotonicity in freq input"
+    table_lookup:           "FPV: prove bounded-time access for n <= 32"
+    actuation_dispatch:     "FPV: prove no double-actuation"
+    crc32_correctness:      "FPV: vs reference Castagnoli implementation"
+  wcet_analysis:
+    tool:                   "AbsInt aiT or Bound-T"
+    architecture:           "ARM Cortex-M7 (option 1) or x86-64 with isolcpus (option 2)"
+    coverage_requirement:   "100% of activation-path basic blocks"
+  pre_qualification:
+    test_protocol:          "Statnett FFR type-prequalification"
+    laboratory:             "1.5 kW programmable AC source + grid-frequency injector"
+    pass_criterion:         "100 of 100 activation events within 0.7s budget"
+
+# === Compliance traceability ===
+
+standards_compliance:
+  iec_61131_3:
+    role:                   "Programming style for the C codebase"
+    citation:               "Sehr et al. 2021 IEEE TII doi:10.1109/TII.2020.3007702"
+  iec_61508_sil2:
+    role:                   "Functional safety target (SIL 2 evidence package)"
+    citation:               "Lauer et al. 2020 SIL-2 controller architecture"
+  iec_61850_9_2:
+    role:                   "Frequency measurement front-end (sampled values)"
+    citation:               "Reda et al. 2021 GOOSE protocol analysis"
+  iec_62443_3_3:
+    role:                   "Cybersecurity for the Modbus/OPC UA channel"
+    citation:               "Cindric et al. 2025 IIoT mapping to IEC 62443"

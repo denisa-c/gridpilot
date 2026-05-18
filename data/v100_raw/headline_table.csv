@@ -1,0 +1,11 @@
+scale,workload,metric,value,context
+node,bursty_alternating,best_efficiency_iters_per_joule,0.5492,"pcap=150W, sm=945MHz"
+node,inference_memory_bound,best_efficiency_iters_per_joule,2.8796,"pcap=150W, sm=945MHz"
+node,matmul_compute_bound,best_efficiency_iters_per_joule,0.5695,"pcap=150W, sm=945MHz"
+node,bursty_alternating,ar4_mae_w,19.66,"AR(4), 30s window"
+node,inference_memory_bound,ar4_mae_w,4.69,"AR(4), 30s window"
+node,matmul_compute_bound,ar4_mae_w,7.0,"AR(4), 30s window"
+node,(all),max_facility_kw,0.78,3 GPU
+rack,(all),max_facility_kw,9.31,36 GPU
+pod,(all),max_facility_kw,465.59,1800 GPU
+cluster,(all),max_facility_kw,9311.82,36000 GPU

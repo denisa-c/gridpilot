@@ -1,0 +1,9 @@
+{
+  "workload": "inference_memory_bound",
+  "n_samples": 19886,
+  "mae_w": 3.532318716685105,
+  "p95_error_w": 7.53,
+  "mean_demand_w": 210.57671527707936,
+  "relative_mae": 0.01677449813022887,
+  "duration_s": 299.9926
+}

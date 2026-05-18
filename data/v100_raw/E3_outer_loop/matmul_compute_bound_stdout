@@ -1,0 +1,16 @@
+Running matmul_compute_bound for 60.0s on Tesla V100-SXM2-32GB
+{
+  "workload": "matmul_compute_bound",
+  "size": 4096,
+  "iterations": 2064,
+  "elapsed_s": 71.80556416511536,
+  "iters_per_s": 28.744290557398536
+}
+Sampling 1 GPU(s) at 100 Hz
+Running: python3 /home/dconstan/gridpilot/kits/v100_experiment_kit/workloads/workload_definitions.py --workload matmul_compute_bound --duration 60.0 --seed 42
+
+✓ Telemetry: /home/dconstan/gridpilot/kits/v100_experiment_kit/results/E3_outer_loop_20260428_184426/matmul_compute_bound_telemetry.csv
+✓ Metadata:  /home/dconstan/gridpilot/kits/v100_experiment_kit/results/E3_outer_loop_20260428_184426/matmul_compute_bound_telemetry.meta.json
+  Samples:   7316
+  Achieved:  98.7 Hz per GPU
+  Exit code: 0

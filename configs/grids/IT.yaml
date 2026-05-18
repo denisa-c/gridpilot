@@ -1,0 +1,15 @@
+country_code: IT
+country_name: Italy
+entsoe_zone: 10YIT-GRTN-----B
+ci_trajectory:
+  2025: 258
+  2028: 188
+  2032: 118
+  source: NECP 2024 (Piano Nazionale Integrato Energia e Clima)
+ffr_participation: 0.60
+ffr_market: Terna ancillary services (Mercato dei Servizi di Dispacciamento)
+prequalification_reference: Pedro et al. 2023 Utilities Policy
+notes: >
+  Italy sits between Switzerland and Germany on the FFR-participation
+  spectrum, with moderate gas-fired reserves to displace. A 50 MW
+  deployment saves 70.7 t-CO2/day in 2025.

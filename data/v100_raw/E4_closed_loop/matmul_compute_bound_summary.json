@@ -1,0 +1,9 @@
+{
+  "workload": "matmul_compute_bound",
+  "n_samples": 21832,
+  "mae_w": 4.406910956394284,
+  "p95_error_w": 9.06,
+  "mean_demand_w": 208.19344860754856,
+  "relative_mae": 0.02116738536139749,
+  "duration_s": 299.9965
+}

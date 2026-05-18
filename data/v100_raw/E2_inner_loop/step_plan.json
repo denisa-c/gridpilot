@@ -1,0 +1,50 @@
+{
+  "args": {
+    "gpu": 0,
+    "workload": "bursty_alternating",
+    "p_high": 280,
+    "p_low": 200,
+    "phase_s": 10.0,
+    "rate_hz": 200
+  },
+  "plan": [
+    {
+      "t": 0.0,
+      "pcap_w": 280,
+      "label": "initial high"
+    },
+    {
+      "t": 10.0,
+      "pcap_w": 200,
+      "label": "step-down"
+    },
+    {
+      "t": 20.0,
+      "pcap_w": 280,
+      "label": "step-up"
+    }
+  ],
+  "applied": [
+    {
+      "t_planned": 0.0,
+      "t_actual": 1.9073486328125e-06,
+      "pcap_w": 280,
+      "label": "initial high",
+      "rc": 0
+    },
+    {
+      "t_planned": 10.0,
+      "t_actual": 10.000133991241455,
+      "pcap_w": 200,
+      "label": "step-down",
+      "rc": 0
+    },
+    {
+      "t_planned": 20.0,
+      "t_actual": 20.000094175338745,
+      "pcap_w": 280,
+      "label": "step-up",
+      "rc": 0
+    }
+  ]
+}
