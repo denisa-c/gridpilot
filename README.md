@@ -31,16 +31,7 @@ incentives elicit flexibility (PECS) that the platform-level
 controller can dispatch deterministically at the facility meter
 (WHPC).
 
-## Authors
 
-- **Denisa-Andreea Constantinescu** — Embedded Systems Laboratory
-  (ESL), EPFL, Switzerland (corresponding author:
-  `denisa.constantinescu@epfl.ch`)
-- **David Atienza** — Embedded Systems Laboratory (ESL), EPFL,
-  Switzerland (`david.atienza@epfl.ch`)
-
-PECS is submitted double-blind; authorship is restored in the
-camera-ready.
 
 ## Headline results
 
@@ -66,11 +57,7 @@ numbers in the LaTeX body text.  The current real measurements are:
   both CFE share and energy-weighted effective grid CI on the M100
   trace; the relative lift is largest on the cleanest grids (SE, CH,
   FR) and the largest absolute avoided tonnage is on the dirtiest
-  (PL, DE).  Honest reporting note: on a small lightly-loaded trace
-  the deferral-only lift is small by construction; the T4 elastic-burst
-  tier (CarbonScaler-style replica scaling) is the literature-grounded
-  extension that the kit ships (see `FSLA_LIFT_DIAGNOSIS.md` in
-  `_dev_archive/`).
+  (PL, DE).  
 
 ## Quick start
 
@@ -143,12 +130,6 @@ gridpilot/
 ├── tests/                       ← pytest suite (~30 s; 48 tests)
 └── licenses/                    ← third-party data licence acknowledgements
 
-papers/   (sibling directory, lives above gridpilot/ in the
-          companion-paper checkout but is NOT shipped inside the
-          public release)
-├── whpc2026/{main.tex,references.bib,architecture.pptx,figs/}
-├── pecs2026/{main.tex,references.bib,architecture.pptx,figs/}
-└── build.sh                     ← per-paper LaTeX build entry point
 ```
 
 ## RAPS integration
@@ -227,7 +208,7 @@ lessons summarised:
    like the bundled M100 month — the literature-grounded T4 elastic-
    burst tier (CarbonScaler), spatial routing (GAIA), and price-
    proportional credits (Lechowicz) are the three SOTA-grounded
-   extensions the kit ships or designs (see `FSLA_LIFT_DIAGNOSIS.md`).
+   extensions the kit ships or designs.
 
 ## Citing
 
@@ -260,15 +241,8 @@ companion most relevant to your use:
 
 ## Acknowledgements
 
-This work builds on infrastructure developed within the EPFL HeatingBits
-project on data-centre waste-heat recovery and grid integration, and
-within the Swiss UrbanTwin initiative on federated learning for
-urban-scale energy systems.  We gratefully acknowledge the EPFL EcoCloud
-sustainable-computing centre, the CINECA team for the public Marconi100
-telemetry dataset, and the ExaDigiT/RAPS community for the open-source
-digital-twin framework.  We thank colleagues from the FEN group at ETH
-Zürich and from DESL at EPFL for ongoing methodological discussions on
-Swiss-grid frequency containment and pre-qualification practice.
+This work has been partially supported by the EPFL Solutions 4 Sustainability program ‘‘HeatingBits: renewable-supplied data centers integrating heating and cooling supply of local districts’’ and the UrbanTwin project (ETH Board Joint Initiatives for the Strategic Area Energy, Climate and Environmental Sustainability, and the Strategic Area Engagement and Dialogue with Society).
+The authors also thank the EcoCloud center of EPFL, in particular Dr. Xavier Ouvrard, for providing access to the V100 server node.
 
 ## Licence
 

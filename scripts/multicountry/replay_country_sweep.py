@@ -21,6 +21,11 @@ Output (under ``--output-dir``):
   country_sweep.csv        one row per (country, mw, layer, mechanism, seed)
   COUNTRY_SUMMARY.json     mean per (country, mw, layer, mechanism) with CIs
   RUN_MANIFEST.json        git SHA + command line + wall time
+  cells/<cell-id>.json     per-cell checkpoint (resumption); disable with
+                           ``--no-cell-cache`` if you do not want partial-run
+                           recovery.  A killed sweep can be resumed by simply
+                           re-running the same command --- existing cell files
+                           are re-read instead of recomputed.
 
 Headline columns per row:
 
@@ -308,12 +313,17 @@ def run_one_cell(
     # ── Aggregate metrics
     if "user" in jobs_local.columns:
         wait_by_user: dict[str, list[float]] = {}
-        for j in result.get("completed", []):
-            u = "anonymous"
-            # Try to recover user via positional alignment
-            i = result["completed"].index(j)
-            if i < len(jobs_local):
-                u = str(jobs_local.iloc[i].get("user", "anonymous"))
+        completed = result.get("completed", [])
+        users = jobs_local["user"].astype(str).tolist()
+        n_users = len(users)
+        # Positional alignment between jobs_local and result["completed"]
+        # (the dispatcher preserves submission order).  Use enumerate so
+        # the lookup is O(N), NOT O(N^2) --- the previous .index(j) call
+        # made the per-cell user-recovery quadratic in the trace size,
+        # which on a 3 000-job M100 trace inflated each cell by ~9 M ops
+        # and drove the 1 008-cell sweep into multi-hour wall times.
+        for i, j in enumerate(completed):
+            u = users[i] if i < n_users else "anonymous"
             wait_by_user.setdefault(u, []).append(
                 max(0.0, (j.get("start", 0) - j.get("submit", 0)))
             )
@@ -418,6 +428,12 @@ def parse_args(argv=None):
     p.add_argument("--node-power-kw", type=float, default=NODE_POWER_KW)
     p.add_argument("--force", action="store_true")
     p.add_argument("--quiet", action="store_true")
+    p.add_argument(
+        "--no-cell-cache", action="store_true",
+        help="Disable per-cell JSON checkpointing (default: cells are "
+             "checkpointed under <output-dir>/cells/ so a killed run can "
+             "resume without re-doing finished cells).",
+    )
     return p.parse_args(argv)
 
 
@@ -475,28 +491,82 @@ def main(argv=None) -> int:
               f"({len(fsla_mechs)} fsla + {len(pue_mechs)} pue) × {len(seeds)} seeds "
               f"= {len(cells)} cells; workers={args.workers}", flush=True)
 
-    rows = []
+    # Per-cell checkpoint directory.  Each completed cell writes its
+    # row to <output-dir>/cells/<cell-id>.json so a killed sweep can
+    # resume by skipping the cell files that already exist.  Set
+    # --no-cell-cache to disable.
+    cells_dir = out_dir / "cells"
+    if not args.no_cell_cache:
+        cells_dir.mkdir(parents=True, exist_ok=True)
+
+    def _cell_id(g: Path, mw: float, layer: str, mech: str, s: int) -> str:
+        # Stable, filesystem-safe id; matches the (country, mw, layer,
+        # mechanism, seed) tuple that uniquely identifies a sweep row.
+        return f"{g.stem}_{int(mw):03d}MW_{layer}_{mech}_{s}"
+
+    def _cell_path(cid: str) -> Path:
+        return cells_dir / f"{cid}.json"
+
+    # Build the work list, partitioning into already-done and to-do.
+    to_run = []
+    cached_rows: list[dict] = []
+    for cell in cells:
+        g, mw, layer, mech, s = cell
+        cid = _cell_id(g, mw, layer, mech, s)
+        cp = _cell_path(cid)
+        if (not args.no_cell_cache) and cp.exists():
+            try:
+                cached_rows.append(json.loads(cp.read_text()))
+                continue
+            except Exception:
+                # Corrupt checkpoint; re-run this cell.
+                cp.unlink(missing_ok=True)
+        to_run.append((cid, cell))
+
+    if not args.quiet and cached_rows:
+        print(f"[country-sweep] resuming: {len(cached_rows)} cells from "
+              f"{cells_dir} already on disk; {len(to_run)} to run",
+              flush=True)
+
+    def _exec(cell):
+        g, mw, layer, mech, s = cell
+        return run_one_cell(g, mw, layer, mech, s, jobs_df,
+                             cooling_params, scheduler_kwargs_base)
+
+    def _persist(cid: str, row: dict) -> None:
+        if args.no_cell_cache:
+            return
+        try:
+            _cell_path(cid).write_text(json.dumps(row))
+        except Exception as exc:
+            # Persistence failure shouldn't break the sweep; log + continue.
+            print(f"[country-sweep] WARN: failed to checkpoint {cid}: {exc}",
+                  flush=True)
+
+    rows: list[dict] = list(cached_rows)
+    total = len(cells)
     if args.workers <= 1:
-        for k, (g, mw, layer, mech, s) in enumerate(cells):
-            if not args.quiet and k % max(1, len(cells) // 20) == 0:
-                print(f"[country-sweep] {k+1}/{len(cells)}  {g.stem:<3} {mw:>4}MW "
+        for k, (cid, cell) in enumerate(to_run):
+            g, mw, layer, mech, s = cell
+            if not args.quiet:
+                print(f"[country-sweep] {len(rows)+1}/{total}  {g.stem:<3} {mw:>4}MW "
                       f"{layer:<4} {mech:<14} seed={s}", flush=True)
-            rows.append(run_one_cell(g, mw, layer, mech, s, jobs_df,
-                                       cooling_params, scheduler_kwargs_base))
+            row = _exec(cell)
+            _persist(cid, row)
+            rows.append(row)
     else:
         with ProcessPoolExecutor(max_workers=args.workers) as ex:
-            futs = {
-                ex.submit(run_one_cell, g, mw, layer, mech, s, jobs_df,
-                           cooling_params, scheduler_kwargs_base):
-                    (g, mw, layer, mech, s)
-                for (g, mw, layer, mech, s) in cells
-            }
+            futs = {ex.submit(_exec, cell): (cid, cell) for cid, cell in to_run}
             for k, fut in enumerate(as_completed(futs)):
-                g, mw, layer, mech, s = futs[fut]
-                if not args.quiet and k % max(1, len(cells) // 20) == 0:
-                    print(f"[country-sweep] {k+1}/{len(cells)}  {g.stem:<3} {mw:>4}MW "
-                          f"{layer:<4} {mech:<14} seed={s}", flush=True)
-                rows.append(fut.result())
+                cid, (g, mw, layer, mech, s) = futs[fut]
+                row = fut.result()
+                _persist(cid, row)
+                rows.append(row)
+                if not args.quiet and (k % max(1, len(to_run) // 20) == 0
+                                       or len(rows) == total):
+                    print(f"[country-sweep] {len(rows)}/{total}  {g.stem:<3} "
+                          f"{mw:>4}MW {layer:<4} {mech:<14} seed={s}",
+                          flush=True)
 
     headline = _compute_deltas(pd.DataFrame(rows))
     headline.to_csv(headline_csv, index=False, float_format="%.4f")

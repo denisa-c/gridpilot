@@ -42,8 +42,23 @@
 #   bash gridpilot/scripts/run_all_experiments.sh           # full run
 #   bash gridpilot/scripts/run_all_experiments.sh stub      # fast (stubs)
 #   FORCE=1 bash ... stub                                   # force in stub mode
+#   FRESH=1 bash ... full                                   # rerun even completed steps
 #   ENTSOE_API_KEY=<tok> bash ... full                      # real CI fetch
 #   M100_ROOT=/path/to/M100 bash ... full                   # extended trace
+#
+# Resumability (full mode):
+#   * A step is treated as COMPLETE if its canonical artefact AND the
+#     companion RUN_MANIFEST.json are both present on disk.  Complete
+#     steps are skipped on rerun, so a killed-and-restarted full run
+#     does not redo work that already finished cleanly.
+#   * The multi-country sweep additionally checkpoints every cell to
+#     data/m100/country_sweep/cells/<cell-id>.json.  If the sweep is
+#     killed mid-way (no CSV yet, but partial cells/), the rerun
+#     resumes from the cells already on disk and only computes the
+#     remaining ones --- this is independent of the step-level skip.
+#   * Set FRESH=1 to clobber both the completed-step skip and the
+#     cells/ directory (delete cells/ manually if you really want a
+#     fresh per-cell rerun).
 #
 # 'full' mode auto-passes --force to the replay drivers so stale stub
 # CSVs from a previous fast rebuild are silently overwritten by real-
@@ -167,15 +182,27 @@ _warn_real_overwrite() {
     fi
 }
 
+# _step_complete: returns 0 if a step's canonical artefact AND its
+# companion RUN_MANIFEST.json are both present, signalling that the
+# step finished cleanly on a previous run and can be skipped on
+# resume.  FRESH=1 forces a rerun even when complete.
+_step_complete() {
+    local csv="$1"; local manifest="$2"
+    [[ "${FRESH:-0}" == "1" ]] && return 1
+    [[ -f "${csv}" && -f "${manifest}" ]]
+}
+
 # ---- Pre-flight banner -----------------------------------------------
 printf '======================================================================\n'
 printf 'GridPilot run-all\n'
-printf '  mode    : %s\n'   "${MODE}"
-printf '  python  : %s\n'   "${PYTHON}"
-printf '  force   : %s\n'   "${FORCE_FLAG:-no}"
-printf '  log     : %s\n'   "${LOG_FILE}"
-printf '  workers : %s\n'   "${WORKERS:-4}"
-printf '  steps   : %d total\n'  "${TOTAL_STEPS}"
+printf '  mode      : %s\n'   "${MODE}"
+printf '  python    : %s\n'   "${PYTHON}"
+printf '  force     : %s\n'   "${FORCE_FLAG:-no}"
+printf '  fresh     : %s   (set FRESH=1 to rerun even completed steps)\n' "${FRESH:-0}"
+printf '  log       : %s\n'   "${LOG_FILE}"
+printf '  workers   : %s\n'   "${WORKERS:-4}"
+printf '  heartbeat : %s s\n'   "${HEARTBEAT_SEC:-30}"
+printf '  steps     : %d total\n'  "${TOTAL_STEPS}"
 printf '======================================================================\n'
 
 mkdir -p data/m100/policy_matrix data/m100/country_sweep
@@ -240,6 +267,10 @@ if [[ "${MODE}" == "stub" ]]; then
     PYTHONPATH=src "${PYTHON}" scripts/m100/seed_policy_matrix_stub.py \
         --output-dir data/m100/policy_matrix
     _step_end
+elif _step_complete data/m100/policy_matrix/policy_matrix.csv \
+                     data/m100/policy_matrix/RUN_MANIFEST.json; then
+    _step_skip "Real M100 policy-matrix replay" \
+        "policy_matrix.csv + RUN_MANIFEST.json already on disk; set FRESH=1 to rerun"
 else
     _step_begin "Real M100 policy-matrix replay (~26 min on 16 cores)" 1
     _warn_real_overwrite data/m100/policy_matrix/RUN_MANIFEST.json \
@@ -268,8 +299,23 @@ if [[ "${MODE}" == "stub" ]]; then
     PYTHONPATH=src "${PYTHON}" scripts/multicountry/seed_country_sweep_stub.py \
         --output-dir data/m100/country_sweep
     _step_end
+elif _step_complete data/m100/country_sweep/country_sweep.csv \
+                     data/m100/country_sweep/RUN_MANIFEST.json; then
+    _step_skip "Real multi-country sweep" \
+        "country_sweep.csv + RUN_MANIFEST.json already on disk; set FRESH=1 to rerun"
 else
-    _step_begin "Real multi-country sweep (~42 min on 16 cores)" 1
+    # If a partial run left a cells/ checkpoint directory, the Python
+    # driver will resume from it and only compute the remaining cells.
+    CELLS_DIR="data/m100/country_sweep/cells"
+    if [[ -d "${CELLS_DIR}" ]]; then
+        DONE_CELLS=$(ls -1 "${CELLS_DIR}"/*.json 2>/dev/null | wc -l | tr -d ' ')
+        if [[ "${DONE_CELLS}" -gt 0 ]]; then
+            echo "[run-all] Found ${DONE_CELLS} cell checkpoints under ${CELLS_DIR};"
+            echo "         the sweep will resume from them.  Delete the directory"
+            echo "         (rm -rf ${CELLS_DIR}) for a fresh per-cell rerun."
+        fi
+    fi
+    _step_begin "Real multi-country sweep (~30-45 min on 16 cores)" 1
     _warn_real_overwrite data/m100/country_sweep/RUN_MANIFEST.json \
         "data/m100/country_sweep/"
     PYTHONPATH=src "${PYTHON}" scripts/multicountry/replay_country_sweep.py \
