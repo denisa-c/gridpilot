@@ -365,6 +365,15 @@ for f in fig_country_cfe_lift fig_country_pue_aware; do
         --matrix data/m100/country_sweep/country_sweep.csv \
         --out "figs/${f}.pdf"
 done
+
+# Optional composed figure: per-tier contribution + hyperparameter
+# sensitivity.  Renders even if only one (or zero) of the two summary
+# CSVs is on disk --- missing panels display "(awaiting <sweep> run)".
+PYTHONPATH=src "${PYTHON}" "scripts/figures/fig_tier_and_hyper.py" \
+    --tier-summary  data/m100/tier_sweep/TIER_SUMMARY.csv \
+    --hyper-summary data/m100/hyper_sweep/HYPER_SUMMARY.csv \
+    --out           figs/fig_tier_and_hyper.pdf \
+    || echo "[run-all] WARN: fig_tier_and_hyper.py failed; continuing"
 _step_end
 
 # =====================================================================

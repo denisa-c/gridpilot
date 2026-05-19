@@ -28,6 +28,7 @@ walkthrough) or [`RUNBOOK.md`](RUNBOOK.md) (per-stage rerun commands).
 |---|---|
 | [`POLICY_MATRIX_PROTOCOL.md`](POLICY_MATRIX_PROTOCOL.md) | M100 policy-matrix replay (step 1 of `run_all_experiments.sh`). |
 | [`COUNTRY_SWEEP_PROTOCOL.md`](COUNTRY_SWEEP_PROTOCOL.md) | Multi-country sweep (step 2 of `run_all_experiments.sh`). |
+| [`TIER_AND_HYPER_SWEEPS.md`](TIER_AND_HYPER_SWEEPS.md) | Per-tier contribution + hyperparameter sensitivity sweeps; protocol + outputs + figure. |
 | [`V100_MEASUREMENT_PROTOCOL.md`](V100_MEASUREMENT_PROTOCOL.md) | V100 hardware-measurement campaign (the WHPC paper's E1–E7; not included in the basic pipeline). |
 | [`FSLA_PROTOCOL.md`](FSLA_PROTOCOL.md) | f-SLA contract specification: per-tier window/clause/credit table; acceptance criteria. |
 

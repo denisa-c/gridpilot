@@ -106,6 +106,34 @@ bash scripts/run_all_experiments.sh stub          # ~2 minutes
 For a step-by-step description of every stage (including how to
 re-run a single stage), see [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
 
+### Additional ablation sweeps (per-tier + hyperparameter)
+
+Two ablation sweeps complement the multi-country headline above:
+
+```bash
+# Per-tier contribution sweep (T0..T5; ~35 min on 16 cores):
+PYTHONPATH=gridpilot/src python3 \
+    gridpilot/scripts/multicountry/replay_single_tier_sweep.py \
+    --jobs gridpilot/data/traces/m100_real_jobs.parquet \
+    --output-dir gridpilot/data/m100/tier_sweep/ --force
+
+# Contract-hyperparameter sensitivity sweep (~20 min):
+PYTHONPATH=gridpilot/src python3 \
+    gridpilot/scripts/multicountry/replay_hyperparameter_sweep.py \
+    --jobs gridpilot/data/traces/m100_real_jobs.parquet \
+    --output-dir gridpilot/data/m100/hyper_sweep/ --force
+
+# Composed 2x2 figure (~5 s):
+PYTHONPATH=gridpilot/src python3 \
+    gridpilot/scripts/figures/fig_tier_and_hyper.py \
+    --tier-summary  gridpilot/data/m100/tier_sweep/TIER_SUMMARY.csv \
+    --hyper-summary gridpilot/data/m100/hyper_sweep/HYPER_SUMMARY.csv \
+    --out           gridpilot/figs/fig_tier_and_hyper.pdf
+```
+
+Protocol: [`docs/TIER_AND_HYPER_SWEEPS.md`](docs/TIER_AND_HYPER_SWEEPS.md).
+Remote-run copy-paste sequence: [`../EXPERIMENTS_REMOTE.md`](../EXPERIMENTS_REMOTE.md).
+
 ## Repository structure
 
 ```

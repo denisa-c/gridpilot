@@ -194,16 +194,35 @@ def pecs_macros() -> tuple[str, bool, list[str]]:
         # energy that f-SLA elicitation makes movable, computed as
         # (Delta CFE pp / 100) x MW_HEADLINE x 8760 h/y.
         ANNUAL_GWH_PER_MW = 8.76
-        # Prefer the absolute CFE metric (energy below 150 g/kWh)
-        # when present --- it discriminates between grids whereas the
-        # per-country-normalised metric saturates around 50 %.
-        # Falls back to the normalised metric if cfe_abs_* columns
-        # are missing (older sweep CSVs).
+        # CFE metric selection.  Two competing metrics:
+        #   * cfe_abs_pct_mean   --- fraction of energy below 150 g/kWh
+        #     (EU 2030 target).  Discriminates between grids OF DIFFERENT
+        #     mean CI but SATURATES at 0 % or 100 % on the cleanest /
+        #     dirtiest grids (SE is always ~100 %, PL always ~0 %).
+        #   * cfe_pct_mean       --- per-country-normalised CFE.  Never
+        #     saturates but only meaningful relative to that grid's own
+        #     [min, max] CI envelope.
+        # ``_pref`` prefers the absolute metric when it is non-degenerate
+        # (neither saturated to 0 nor pinned at 100), and falls back to
+        # the normalised metric on grids where the absolute metric is
+        # degenerate.  Falls back further to None if neither column is
+        # present (older / stub CSVs).
         def _pref(c: str, layer_: str, mech: str, abs_field: str,
                    pct_field: str) -> Optional[float]:
-            v = _lookup(c, MW_HEADLINE, layer_, mech, abs_field)
-            if v is not None:
-                return v
+            # First check whether the absolute metric is degenerate on
+            # this grid by inspecting the BASELINE absolute value: if
+            # the no-f-SLA baseline is saturated at 0 or 100, the
+            # f-SLA delta will be ~0 and the metric carries no signal.
+            base_abs = _lookup(c, MW_HEADLINE, layer_, "none",
+                                 abs_field.replace("_lift_pp", "_pct"))
+            abs_saturated = (
+                base_abs is not None
+                and (base_abs <= 0.5 or base_abs >= 99.5)
+            )
+            if not abs_saturated:
+                v = _lookup(c, MW_HEADLINE, layer_, mech, abs_field)
+                if v is not None:
+                    return v
             return _lookup(c, MW_HEADLINE, layer_, mech, pct_field)
 
         for c in COUNTRIES:
@@ -225,6 +244,12 @@ def pecs_macros() -> tuple[str, bool, list[str]]:
             ciwm_base = _lookup(c, MW_HEADLINE, "fsla", "none", "ci_weighted_mean_g")
             ciwm_full = _lookup(c, MW_HEADLINE, "fsla", M_LEAD, "ci_weighted_mean_g")
             ciwm_lift = _lookup(c, MW_HEADLINE, "fsla", M_LEAD, "ci_weighted_lift_g_mean")
+            # Synthesise the lift from base - fsla if the pre-aggregated
+            # ci_weighted_lift_g_mean column is missing (older CSVs or
+            # stubs do not carry it).  Convention: positive lift means
+            # the contract shifted compute to a lower effective grid CI.
+            if ciwm_lift is None and ciwm_base is not None and ciwm_full is not None:
+                ciwm_lift = ciwm_base - ciwm_full
             out += [_macro(f"PecsCfeLift{c}",  _fmt(lift,    1) if lift is not None     else "?"),
                     _macro(f"PecsBaseCfe{c}",  _fmt(base,    1) if base is not None     else "?"),
                     _macro(f"PecsFslaCfe{c}",  _fmt(full,    1) if full is not None     else "?"),
