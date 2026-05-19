@@ -1,0 +1,19 @@
+# experiments_v2 produces all CSVs / cell JSONs / figure PDFs locally;
+# the orchestrator + scripts are versioned, the outputs are not.
+
+data/*/cells/
+data/*/*.csv
+data/*/*.json
+data/*/RUN_MANIFEST.json
+figs/*.pdf
+figs/results.tex
+logs/
+archived_v1_*/
+CHECKSUM_REPORT.md
+
+# but keep the layout markers
+!data/.gitkeep
+!data/country_sweep/.gitkeep
+!data/tier_sweep/.gitkeep
+!data/hyper_sweep/.gitkeep
+!figs/.gitkeep
