@@ -189,16 +189,21 @@ kernel honours `SCHED_FIFO`.
 
 The bundled `data/traces/m100_real_jobs.parquet` (1 994 jobs,
 January 2022) is small (~3 MB) and lets the PECS paper's multi-
-country sweep run end-to-end without a download step.  The released
-kit also ships `scripts/m100/build_extended_trace.py` that
-concatenates the publicly available Marconi100 February 2022 SLURM
-`sacct` dump if `M100_ROOT` is set; the extended trace (~3 100 jobs)
-is what we use for the headline numbers when available.
+country sweep run end-to-end without a download step.  In addition,
+`data/m100_public/` ships the **Feb 2022 SLURM `sacct` slice** of the
+Marconi100 ExaData archive (CINECA / Univ. of Bologna; CC-BY 4.0),
+re-distributed here under the upstream licence; `scripts/m100/build_extended_trace.py`
+auto-resolves it as the default source and concatenates it with the
+January parquet to produce the extended ~3 100-job trace we use for
+the headline numbers.  Users with their own ExaMon dump (e.g. a more
+recent month) can override the source via `M100_ROOT=<path>`;
+`scripts/m100/publish_m100_subset.sh` is the inverse operation that
+re-publishes the subset from a local raw archive.
 
 Bundling makes the reviewer's "from clone to camera-ready"
 experience hermetic: no downloads, no API keys, no auth tokens
 required for the basic pipeline.  Optional features (real ENTSO-E
-CI, extended trace) are clearly labelled as such.
+CI, alternative ExaMon months) are clearly labelled as such.
 
 ## 9. Why per-cell JSON checkpointing for the multi-country sweep?
 
@@ -227,16 +232,18 @@ This is the analogue, in publication, of the `RUN_MANIFEST.json`
 discipline in the data: every artefact carries an unambiguous origin
 trail.
 
-## 11. Why the architecture-custom.pdf override?
+## 11. Why the architecture-5tier.pdf override?
 
-The PECS paper's architecture figure has a hand-drawn version
-(`papers/pecs2026/figs/architecture-custom.pdf`) that the author
-prefers to the matplotlib-generated default
-(`fig_fsla_architecture.py`'s output).  The build script renders the
-matplotlib placeholder so the paper always compiles, but the body
-text references `architecture-custom.pdf`.  Updates to the figure are
-authored in PowerPoint (`papers/pecs2026/architecture.pptx` once
-exported) and re-exported to PDF.
+The PECS paper's architecture figure has a deterministic redraw
+(`papers/pecs2026/figs/architecture-5tier.pdf`, written by
+`scripts/figures/fig_architecture_5tier.py`) that depicts the f-SLA
+ladder explicitly with the T4 elastic-burst tier added in v1.1.  The
+body text references `architecture-5tier.pdf` directly.  The original
+hand-drawn `architecture-custom.pdf` (four-tier ladder, pre-T4) is
+kept on disk for diff/comparison but is no longer cited.  The
+matplotlib placeholder `fig_fsla_architecture.py` still writes
+`architecture.pdf` so the paper compiles cleanly when neither the
+script-redraw nor the hand-drawn file is present.
 
 The same override pattern works for any other figure: drop a PDF
 with the matching name into `papers/<paper>/figs/` and the build
@@ -261,7 +268,32 @@ and no install-cost beyond `networkx>=3.1` (optional).
 See [`C2_SPATIAL_AND_WORKFLOW.md`](C2_SPATIAL_AND_WORKFLOW.md) for
 the full scaffolding overview.
 
-## 13. Choices we explicitly rejected
+## 13. Legacy "Finding N" tags in source-code comments
+
+Many source-code docstrings (e.g. in `src/scheduler/fsla.py`,
+`scripts/m100/inject_fsla_prior.py`,
+`scripts/m100/replay_policy_matrix.py`,
+`scripts/multicountry/replay_country_sweep.py`,
+`scripts/figures/fig_*.py`) still tag themselves with "Finding 3",
+"Finding 4", or "Finding 5".  Those tags refer to the **legacy
+single-paper draft** that has since been split into two workshop
+papers (PECS f-SLA + WHPC GridPilot) and re-numbered.  The current
+mapping is:
+
+| Legacy tag | Current PECS section / artefact |
+|------------|---------------------------------|
+| Finding 3 | `sec:fsla` — the f-SLA contract + Dirichlet prior; injection counterfactual on the M100 trace.  Drivers: `inject_fsla_prior.py`, `fsla.py`. |
+| Finding 4 | Anti-gaming policy matrix in the body of `sec:fsla` and the per-tier-contribution / hyperparameter sweep figure (`tier_and_hyper`).  Drivers: `replay_policy_matrix.py`, `fsla_mechanisms.py`, `fig_{cfe_by_tier,swf_comparison,fairness_pareto,latency_per_tier}.py`. |
+| Finding 5 | `sec:results` — the multi-country headline (CFE-lift across the EU CI spectrum).  Drivers: `replay_country_sweep.py`, `fig_country_cfe_lift.py`. |
+
+The user-facing protocol docs (`FSLA_PROTOCOL.md`,
+`POLICY_MATRIX_PROTOCOL.md`, `COUNTRY_SWEEP_PROTOCOL.md`) point at
+the **current** section labels (`sec:fsla`, `sec:results`).  The
+in-code tags are kept for git-history grep-ability — a reviewer
+reading a v0.x commit message that references "Finding 4" can still
+find the code that implemented it.
+
+## 14. Choices we explicitly rejected
 
 | Considered | Rejected because |
 |---|---|

@@ -1,13 +1,13 @@
 # f-SLA Protocol — Formal Specification
 
-**Version:** 1.0 (PECS 2026 / GridPilot v1.0 release)
-**Backs:** PECS 2026 Paper Section 5 ("The f-SLA Contract: Eliciting Truthful Flexibility") and Finding 3 ("declared-tier f-SLA injection lifts the IT-CO₂ ceiling").
+**Version:** 1.1 (PECS 2026 / GridPilot v1.1 release; six-tier ladder + canonical-CFE metric)
+**Backs:** PECS 2026 Paper Sect.~\ref{sec:fsla} ("The f-SLA Contract: Eliciting Truthful Flexibility").  The declared-tier-injection counterfactual that lifts the IT-CO₂ ceiling — tagged "Finding 3" in the legacy single-paper draft and still referenced under that name in source-code comments — is the formal basis for Sect.~\ref{sec:fsla}.
 
-This document defines the flexible Service-Level Agreement (f-SLA) contract precisely enough that an independent implementer can reproduce the Finding 3 evidence chain on any cluster trace. It is the formal companion to `src/scheduler/fsla.py` and `scripts/m100/inject_fsla_prior.py`.
+This document defines the flexible Service-Level Agreement (f-SLA) contract precisely enough that an independent implementer can reproduce the evidence chain on any cluster trace. It is the formal companion to `src/scheduler/fsla.py` and `scripts/m100/inject_fsla_prior.py`.
 
-## 1. The four-tier ladder
+## 1. The six-tier ladder (v1.1)
 
-Each tier `T_k` is a triple `(window, slowdown_max, credit)`:
+Each tier `T_k` is a triple `(window, slowdown_max, credit)` plus optional spatial / elastic extras:
 
 | Tier | Name | Window `W` | Slowdown clause `s_max` | Credit/h `α` | Extras |
 |------|------|------------|------------------------|--------------|--------|
@@ -15,8 +15,12 @@ Each tier `T_k` is a triple `(window, slowdown_max, credit)`:
 | T1 | Hour-deferrable | 1 h | 1.2× | 0.02 | |
 | T2 | Day-deferrable | 24 h | 2.0× | 0.04 | |
 | T3 | Checkpointable-multi-day | 168 h (7 d) | 4.0× | 0.06 | + 0.5 fixed checkpoint-eligibility bonus per job; user declares checkpoint cadence (e.g. 30 min) so the scheduler may pre-empt and migrate |
+| T4 | Elastic burst | 24 h | 2.0× | 0.08 | replica envelope `[0.5×, 2×]` at constant expected makespan (CarbonScaler regime); scheduler scales DOWN in dirty hours and UP in clean hours on the CI signal |
+| T5 | Spatial (C2 follow-on) | 24 h | 1.5× | 0.10 | job is portable across a user-declared grid set $G_j$; scheduler routes to cleanest grid in $G_j$ and charges egress emissions against the IT-side saving (not implemented in v1.1 dispatcher; see C2 plan) |
 
 Credits are denominated in cluster-credit-hours; the actual exchange rate against compute time is a deployment-side parameter outside the scope of this protocol.
+
+Note: v1.0 of this protocol described only T0..T3 (the legacy four-tier ladder).  T4 was added in v1.1 to capture CarbonScaler-style elastic scaling on the CI signal; T5 is the spatial-routing clause that the C2 follow-on paper (`papers/europar2027-c2/`) implements end-to-end.
 
 ## 2. Synthetic prior
 
@@ -56,7 +60,7 @@ The scheduler's QoS guard at line 188 of `scheduler_pue_aware.py` (in the inner 
 
 ## 6. Statistical-rigor protocol
 
-The Finding 3 evidence is a Monte-Carlo + bootstrap + sensitivity bundle:
+The declared-tier-injection evidence chain (legacy tag "Finding 3"; see `RATIONALE.md` §13) is a Monte-Carlo + bootstrap + sensitivity bundle:
 
 1. **Monte Carlo over priors.** 32 independent Dirichlet draws of π, one per seed; for each, run the all-rigid and declared-tier replays; record Δ_IT and Δ_facility.
 2. **Bootstrap CI.** 10 000 percentile-bootstrap resamples of the 32 per-seed Δ values give the 95 % CI on the headline lift.

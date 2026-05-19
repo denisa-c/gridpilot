@@ -405,9 +405,11 @@ PYTHONPATH=src "${PYTHON}" scripts/figures/fig_fsla_architecture.py \
 PYTHONPATH=src "${PYTHON}" scripts/figures/fig_gridpilot_architecture.py \
     --out "${PROJECT_ROOT}/papers/whpc2026/figs/architecture.pdf"
 
-# Redrawn 5-tier f-SLA architecture (T0..T4) used by the PECS body in
-# place of the hand-made 4-tier architecture-custom.pdf.  The script
-# resolves its own output path under papers/pecs2026/figs/.
+# Redrawn 5-tier f-SLA architecture (T0..T4 drawn; T5 spatial is the
+# C2 follow-on) used by the PECS body.  The legacy hand-drawn
+# architecture-custom.pdf (pre-T4) is kept on disk for diff but no
+# longer cited.  The script resolves its own output path under
+# papers/pecs2026/figs/architecture-5tier.pdf.
 PYTHONPATH=src "${PYTHON}" scripts/figures/fig_architecture_5tier.py
 
 # Optionally produce the editable .pptx masters too.

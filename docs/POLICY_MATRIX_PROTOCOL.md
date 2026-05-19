@@ -1,6 +1,6 @@
-# Policy-matrix protocol (PECS Paper B §7 Finding 4)
+# Policy-matrix protocol (PECS anti-gaming policy matrix, `sec:fsla`)
 
-This protocol explains how the four PECS-paper figures backing Finding 4 are produced and how each maps to a pre-registered hypothesis (FSLA_GAMIFICATION_POC_PLAN.md §8).
+This protocol explains how the four PECS-paper figures backing the anti-gaming policy matrix (M0..M3 mechanisms × 5 baseline policies) are produced and how each maps to a pre-registered hypothesis (FSLA_GAMIFICATION_POC_PLAN.md §8).  Internal source-code comments still tag this as "Finding 4" — the legacy single-paper draft's numbering; see `RATIONALE.md` §13.
 
 ## 1. Inputs
 
@@ -72,7 +72,7 @@ PYTHONPATH=src python -c "from scheduler.fsla_mechanisms import build_mechanism;
     print('all four mechanisms instantiated OK')"
 ```
 
-## 7. Where each Finding 4 hypothesis is verified
+## 7. Where each pre-registered hypothesis is verified
 
 | Hypothesis | Acceptance criterion                                              | Figure                  | Test |
 |------------|-------------------------------------------------------------------|-------------------------|------|

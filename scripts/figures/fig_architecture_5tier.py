@@ -4,9 +4,11 @@ scripts/figures/fig_architecture_5tier.py
 =========================================
 Renders the f-SLA architecture diagram with **five** tiers
 (T0 rigid / T1 hour / T2 day / T3 week / T4 elastic burst).
-This is a redraw of papers/pecs2026/figs/architecture-custom.pdf
-(which only depicts the original four-tier ladder) so it stays in
-sync with the paper body once T4 is introduced.
+This is a redraw of the legacy hand-drawn
+papers/pecs2026/figs/architecture-custom.pdf (which only depicts
+the original four-tier ladder, pre-T4 elastic-burst) so it stays in
+sync with the paper body.  T5 (spatial routing) is the C2 follow-on
+and is not drawn here; the PECS body caption notes the omission.
 
 Output: papers/pecs2026/figs/architecture-5tier.pdf
 """

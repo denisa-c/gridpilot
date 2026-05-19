@@ -1,6 +1,6 @@
 # Multi-country sweep protocol
 
-Backs the **PECS Paper B Finding 5** (f-SLA CFE-lift across the EU CI spectrum) and the **WHPC PUE-aware controller** multi-country result.
+Backs the **PECS multi-country headline** (`sec:results`; f-SLA CFE-lift across the EU CI spectrum) and the **WHPC PUE-aware controller** multi-country result.  Internal source-code comments still tag this as "Finding 5" — that was the section number in the legacy single-paper draft; see `RATIONALE.md` §13 for the legacy-to-current mapping.
 
 ## 1. Inputs
 
@@ -58,8 +58,8 @@ Each writes a vector PDF to `figs/`; `papers/build.sh` then stages those into `p
 
 | Paper | Finding | Figure | What the figure shows |
 |---|---|---|---|
-| PECS | Finding 5(A) high-CI vs low-CI asymmetry | `fig_country_cfe_lift.pdf` (a) | CFE-lift bars across SE → PL, with annual avoided tCO2/y on right axis |
-| PECS | Finding 5(C) scale-invariance | `fig_country_cfe_lift.pdf` (b) | Same lift evaluated at 1/10/50 MW for SE and PL bookends |
+| PECS | Headline (A) high-CI vs low-CI asymmetry | `fig_country_cfe_lift.pdf` (a) | CFE-lift bars across SE → PL, with annual avoided tCO2/y on right axis |
+| PECS | Headline (B) scale-invariance | `fig_country_cfe_lift.pdf` (b) | Same lift evaluated at 1/10/50 MW for SE and PL bookends |
 | WHPC | PUE-aware FFR drag-closure | `fig_country_pue_aware.pdf` (a) | $\Delta_\mathrm{facility}$ bars across SE → PL at 10 MW |
 | WHPC | Cluster-scale drag-envelope | `fig_country_pue_aware.pdf` (b) | $\Delta_\mathrm{facility}$ scaling at 1/10/50 MW |
 
