@@ -1,10 +1,10 @@
 {
   "H1_declared_tier_lift": {
     "lifts_pct": {
-      "M0": -0.17633833677942717,
-      "M1": -0.17633833677942717,
-      "M2": -0.17633833677942717,
-      "M3": -0.17633833677942717
+      "M0": -56.1874800006962,
+      "M1": -56.1874800006962,
+      "M2": -56.1874800006962,
+      "M3": -56.1874800006962
     },
     "passed": false
   },
@@ -14,18 +14,18 @@
     "passed": true
   },
   "H3_fairness": {
-    "baseline_jain": 0.9216110615846176,
-    "min_ratio": 0.02223949906919374,
-    "passed": false
+    "baseline_jain": 0.3501090672703042,
+    "min_ratio": 0.9563767837124422,
+    "passed": true
   },
   "H4_swf_dominance": {
-    "swf_m2_alpha2": -49000000006.601204,
-    "swf_m0_alpha2": -49000000006.601204,
+    "swf_m2_alpha2": -446999999999.99994,
+    "swf_m0_alpha2": -446999999999.99994,
     "passed": true
   },
   "H5_latency_monotone": {
-    "fcfs_p95": 157.9583,
-    "gridpilot_m3_p95": 146.9774375,
+    "fcfs_p95": 11280.6333,
+    "gridpilot_m3_p95": 11280.6333,
     "max_clause": 4.0,
     "passed": true
   }

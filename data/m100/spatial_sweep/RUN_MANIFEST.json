@@ -1,5 +1,5 @@
 {
-  "git_sha": "8566ded86a4b56b814cd43825837b3f047483246",
+  "git_sha": "c9e042bdf3a4fdf35f9ad1a473988f86f583fa9c",
   "command_line": "gridpilot/scripts/multicountry/replay_spatial_sweep.py --jobs gridpilot/data/traces/m100_real_jobs.parquet --output-dir gridpilot/data/m100/spatial_sweep/ --force",
   "args": {
     "jobs": "gridpilot/data/traces/m100_real_jobs.parquet",

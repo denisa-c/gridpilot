@@ -1,6 +1,6 @@
 {
-  "git_sha": "8566ded86a4b56b814cd43825837b3f047483246",
-  "command_line": "gridpilot/scripts/multicountry/replay_single_tier_sweep.py --jobs gridpilot/data/traces/m100_real_jobs.parquet --grids SE,CH,FR,IT,DE,PL --mw 1,10,50 --tiers 0,1,2,3,4,5 --seeds 8 --workers 4 --output-dir gridpilot/data/m100/tier_sweep/ --force",
+  "git_sha": "6420dd857ba42e5f50035298a677db00c7bbf22a",
+  "command_line": "gridpilot/scripts/multicountry/replay_single_tier_sweep.py --jobs gridpilot/data/traces/m100_real_jobs.parquet --output-dir gridpilot/data/m100/tier_sweep/ --force",
   "args": {
     "jobs": "gridpilot/data/traces/m100_real_jobs.parquet",
     "grids": "SE,CH,FR,IT,DE,PL",
