@@ -1,0 +1,31 @@
+{
+  "kind": "seasonal_sweep",
+  "version": 2,
+  "git_sha": "unknown",
+  "python": "3.14.4",
+  "host": "mochi",
+  "argv": [
+    "/home/rubisa/code/gridpilot/experiments_v2/scripts/04b_run_seasonal_sweep.py",
+    "--output-dir",
+    "/home/rubisa/code/gridpilot/experiments_v2/data/seasonal_sweep",
+    "--workers",
+    "18"
+  ],
+  "n_cells": 240,
+  "trace": "/home/rubisa/code/gridpilot/data/traces/m100_real_jobs_extended.parquet",
+  "countries": [
+    "CH",
+    "IT",
+    "DE"
+  ],
+  "seasons": {
+    "Winter": "2025-01-15T00:00:00+00:00",
+    "Spring": "2025-04-15T00:00:00+00:00",
+    "Summer": "2025-07-15T00:00:00+00:00",
+    "Autumn": "2025-10-15T00:00:00+00:00"
+  },
+  "n_jobs_per_day": 1000,
+  "mw": 10,
+  "seeds": 4,
+  "wall_seconds": 2
+}

@@ -1,0 +1,1 @@
+{"country": "DE", "mw": 10, "seed": 4, "hyper": "alpha_scale", "value": 0.5, "energy_kwh": 7101.4791666702195, "ci_weighted_mean": 319.2784983379376, "cfe_canonical_pct": 60.090187707757806, "cfe_pct": 47.76074256972107, "cfe_abs_pct": 0.0, "p95_slowdown": 1680.6166666666666, "n_jobs": 20000}

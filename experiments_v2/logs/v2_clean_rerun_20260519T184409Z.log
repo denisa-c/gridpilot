@@ -1,0 +1,186 @@
+======================================================================
+experiments_v2 clean rerun
+  start_utc  : 20260519T184409Z
+  v2 root    : /home/rubisa/code/gridpilot/experiments_v2
+  python     : /home/rubisa/code/gridpilot/.venv/bin/python3
+  workers    : 20
+  max-jobs   : 20000   (per-sweep trace sub-sample)
+  fresh      : 1
+  skip_gates : 0
+  skip_sweeps: 0
+  log        : /home/rubisa/code/gridpilot/experiments_v2/logs/v2_clean_rerun_20260519T184409Z.log
+  git sha    : unknown
+======================================================================
+
+[FRESH] archiving v1 data → /home/rubisa/code/gridpilot/experiments_v2/archived_v1_20260519T184409Z
+[FRESH] wiping previous v2 cells under /home/rubisa/code/gridpilot/experiments_v2/data
+
+----------------------------------------------------------------------
+Phase 1 — unit audit (closed-form metric tests)
+----------------------------------------------------------------------
+experiments_v2 Phase 1 — unit audit (CFE_REF=800.0 g/kWh)
+==============================================================================
+
+[T1] _ci_weighted_mean_g  (METRICS §1)
+  [PASS] 1a flat CI=0                                                 got=    0.0000  want=    0.0000
+  [PASS] 1b flat CI=800                                               got=  800.0000  want=  800.0000
+  [PASS] 1c balanced 0/200                                            got=  100.0000  want=  100.0000
+  [PASS] 1d empty                                                     got=    0.0000  want=    0.0000
+  [PASS] 1e weighted (small@0 + big@400)                              got=  384.0000  want=  384.0000
+
+[T2] _cfe_canonical_pct  (METRICS §2)
+  [PASS] 2a SE clean (11 g/kWh)                                       got=   98.6250  want=   98.6250
+  [PASS] 2b fossil-only                                               got=    0.0000  want=    0.0000
+  [PASS] 2c clipped above reference                                   got=    0.0000  want=    0.0000
+  [PASS] 2d PL mean (612 g/kWh)                                       got=   23.5000  want=   23.5000
+  [PASS] 2e empty                                                     got=    0.0000  want=    0.0000
+
+[T3] _cfe_threshold_pct  (METRICS §3)
+  [PASS] 3a all below threshold                                       got=  100.0000  want=  100.0000
+  [PASS] 3b all above threshold                                       got=    0.0000  want=    0.0000
+  [PASS] 3c balanced below/above                                      got=   50.0000  want=   50.0000
+
+[T4] sign convention  (METRICS §8)
+  [PASS] 4a CFE worse → Δ < 0                                         got=  -12.5000  want=  -12.5000
+  [PASS] 4b CI  worse → Δ < 0                                         got= -100.0000  want= -100.0000
+
+[T5] annualised avoided emissions  (METRICS §6)
+  [PASS] 5a 28d, 10MW/5MW scaling                                     got=    0.0078  want=    0.0078
+
+[T6] shared accounting module  (experiments_v2/src/schedulers/accounting.py)
+  [PASS] 6a empty schedule  energy_kwh                                got=    0.0000  want=    0.0000
+  [PASS] 6a empty schedule  cfe_canonical_pct                         got=    0.0000  want=    0.0000
+  [PASS] 6a empty schedule  n_completed                               got=    0.0000  want=    0.0000
+  [PASS] 6b 1 job  energy_kwh                                         got=    1.5000  want=    1.5000
+  [PASS] 6b 1 job  ci_weighted_mean                                   got=  400.0000  want=  400.0000
+  [PASS] 6b 1 job  cfe_canonical_pct                                  got=   50.0000  want=   50.0000
+  [PASS] 6b 1 job  co2_g_it                                           got=  600.0000  want=  600.0000
+  [PASS] 6c PUE=1.5  co2_g_facility                                   got=  900.0000  want=  900.0000
+  [PASS] 6c PUE=1.5  co2_g_it (unchanged)                             got=  600.0000  want=  600.0000
+  [PASS] 6d balanced  ci_weighted_mean                                got=  100.0000  want=  100.0000
+  [PASS] 6d balanced  cfe_canonical_pct                               got=   87.5000  want=   87.5000
+  [PASS] 6e replicas=2  energy_kwh                                    got=    3.0000  want=    3.0000
+  [PASS] 6e replicas=2  co2_g_it                                      got= 1200.0000  want= 1200.0000
+  [PASS] 6f F3 split  n_completed                                     got=    1.0000  want=    1.0000
+  [PASS] 6f F3 split  n_truncated                                     got=    1.0000  want=    1.0000
+  [PASS] 6f F3 split  truncated end clamped                           got=1704672000.0000  want=1704672000.0000
+
+==============================================================================
+PASS=32  FAIL=0
+Unit audit PASSED.  Proceed to Phase 2 (single-cell smoketest).
+
+----------------------------------------------------------------------
+Phase 1b — scheduler unit tests (FCFS pathology, EASY backfill, SAF, REPLAY)
+----------------------------------------------------------------------
+[PASS] FCFS T1 — all jobs fit immediately
+[PASS] FCFS T2 — head-of-queue blocking pathology (MF&F 2001)
+[PASS] FCFS T3 — F3 truncation split
+[PASS] EASY E1 — backfill fixes the FCFS pathology (Lifka 1995)
+[PASS] EASY E2 — backfill never delays the head's reservation
+[PASS] SAF S1 — smaller-area job runs first under SAF (CS&dC 2019)
+[PASS] SAF S2 — SAF respects online dynamics (no pre-emption)
+[PASS] REPLAY R1 — historical start times respected
+
+All v2 scheduler unit tests pass.
+
+----------------------------------------------------------------------
+Phase 2 — single-cell smoketest (SE, 10 MW, seed 0)
+----------------------------------------------------------------------
+experiments_v2 Phase 2 — single-cell smoketest (SE, 10 MW, seed 0)
+==============================================================================
+  trace      : /home/rubisa/code/gridpilot/data/traces/m100_real_jobs_extended.parquet (extended Jan+Feb)
+  SE grid    : /home/rubisa/code/gridpilot/configs/grids/SE.yaml
+  PUE YAML   : /home/rubisa/code/gridpilot/raps/config/marconi100.yaml  (RAPS submodule)
+  CFE ref CI : 800.0 g/kWh
+
+  Loading trace + cooling params...
+
+  running (a) plain-FCFS  CI-blind  (pue, mechanism='none')...
+
+  [(a) plain-FCFS  CI-blind ]
+    country                = 'SE'
+    mw                     =        10.0000
+    layer                  = 'pue'
+    mechanism              = 'none'
+    seed                   = 0
+    n_jobs                 = 359481
+    energy_kwh             =   1889310.0000
+    ci_weighted_mean       =        12.0067
+    cfe_canonical_pct      =        98.4992
+    cfe_abs_pct            =       100.0000
+    co2_g_facility         =  48216032.1235
+    co2_tonnes_y           =       268.9689
+
+  running (b) EASY-FCFS   CI-aware  (fsla, mechanism='none')...
+
+  [(b) EASY-FCFS   CI-aware ]
+    country                = 'SE'
+    mw                     =        10.0000
+    layer                  = 'fsla'
+    mechanism              = 'none'
+    seed                   = 0
+    n_jobs                 = 360139
+    energy_kwh             =     61803.2271
+    ci_weighted_mean       =        12.1196
+    cfe_canonical_pct      =        98.4850
+    cfe_abs_pct            =       100.0000
+    co2_g_facility         =   1501969.2333
+    co2_tonnes_y           =         8.3789
+
+  running (c) f-SLA M3    CI-aware  (fsla, mechanism='M3')...
+
+  [(c) f-SLA M3    CI-aware ]
+    country                = 'SE'
+    mw                     =        10.0000
+    layer                  = 'fsla'
+    mechanism              = 'M3'
+    seed                   = 0
+    n_jobs                 = 360139
+    energy_kwh             =     89737.5217
+    ci_weighted_mean       =        12.0061
+    cfe_canonical_pct      =        98.4992
+    cfe_abs_pct            =       100.0000
+    co2_g_facility         =   2211214.8588
+    co2_tonnes_y           =        12.3364
+
+==============================================================================
+Sign-convention trace (METRICS §8 --- positive ⟹ improvement):
+  Δ CFE  vs plain-FCFS  : +0.000 pp   (M3 better than FCFS  ⇔ positive)
+  Δ CFE  vs EASY-FCFS   : +0.014 pp   (M3 better than EASY  ⇔ positive)
+  Δ CI   vs plain-FCFS  : +0.001 g/kWh (M3 cleaner than FCFS ⇔ positive)
+  Δ CI   vs EASY-FCFS   : +0.114 g/kWh (M3 cleaner than EASY ⇔ positive)
+  Δ CO2  vs plain-FCFS  : +46004817.3 g     (M3 less CO2 than FCFS ⇔ positive)
+  Δ CO2  vs EASY-FCFS   : -709245.6 g     (M3 less CO2 than EASY ⇔ positive)
+
+All sign-convention checks PASS.  Smoketest cleanly ran 3 sub-cells.
+Proceed to Phase 3 (script audit) and Phase 4 (full v2 rerun).
+
+----------------------------------------------------------------------
+Phase 4a — country sweep (all baselines + M3 across all 6 countries)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/rubisa/code/gridpilot/experiments_v2/scripts/02_run_country_sweep.py", line 434, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/home/rubisa/code/gridpilot/experiments_v2/scripts/02_run_country_sweep.py", line 282, in main
+    if not jobs_path.exists():
+           ^^^^^^^^^^^^^^^^
+AttributeError: 'int' object has no attribute 'exists'
+Phase 4a FAIL
+
+
+(.venv) rubisa@mochi:~/code$ ^C
+(.venv) rubisa@mochi:~/code$   PYTHONPATH=gridpilot/experiments_v2/src python3 \\
+      gridpilot/experiments_v2/scripts/07_render_seasonal_figure.py \\
+      --seasonal-csv gridpilot/experiments_v2/data/seasonal_sweep/seasonal_sweep.csv \\
+      --out          gridpilot/experiments_v2/figs/fig_proact_1x4_v2.pdf
+python3: can't open file '/home/rubisa/code/\\': [Errno 2] No such file or directory
+bash: gridpilot/experiments_v2/scripts/07_render_seasonal_figure.py: Permission denied
+--seasonal-csv: command not found
+--out: command not found
+(.venv) rubisa@mochi:~/code$   PYTHONPATH=gridpilot/src:gridpilot/experiments_v2/src python3 \\
+      gridpilot/experiments_v2/scripts/04b_run_seasonal_sweep.py \\
+      --workers 18
+python3: can't open file '/home/rubisa/code/\\': [Errno 2] No such file or directory
+bash: gridpilot/experiments_v2/scripts/04b_run_seasonal_sweep.py: Permission denied
+--workers: command not found

@@ -1,0 +1,1 @@
+{"country": "PL", "mw": 10, "seed": 0, "hyper": "alpha_scale", "value": 4.0, "energy_kwh": 7101.479166670219, "ci_weighted_mean": 661.8133268493084, "cfe_canonical_pct": 17.27333414383645, "cfe_pct": 43.483725687766686, "cfe_abs_pct": 0.0, "p95_slowdown": 1680.6166666666666, "n_jobs": 20000}

@@ -1,0 +1,32 @@
+{
+  "H1_declared_tier_lift": {
+    "lifts_pct": {
+      "M0": -56.18748000069617,
+      "M1": -56.18748000069617,
+      "M2": -56.18748000069617,
+      "M3": -56.18748000069617
+    },
+    "passed": false
+  },
+  "H2_nom_ic": {
+    "m3_nom_ic_violation_rate": 0.0,
+    "m0_nom_ic_violation_rate": 0.0,
+    "passed": true
+  },
+  "H3_fairness": {
+    "baseline_jain": 0.3501090672703042,
+    "min_ratio": 0.9563767837124422,
+    "passed": true
+  },
+  "H4_swf_dominance": {
+    "swf_m2_alpha2": -446999999999.99994,
+    "swf_m0_alpha2": -446999999999.99994,
+    "passed": true
+  },
+  "H5_latency_monotone": {
+    "fcfs_p95": 11280.6333,
+    "gridpilot_m3_p95": 11280.6333,
+    "max_clause": 4.0,
+    "passed": true
+  }
+}

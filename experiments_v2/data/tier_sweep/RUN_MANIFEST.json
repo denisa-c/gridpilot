@@ -1,0 +1,41 @@
+{
+  "kind": "tier_sweep",
+  "version": 2,
+  "git_sha": "unknown",
+  "python": "3.14.4",
+  "host": "mochi",
+  "argv": [
+    "/home/rubisa/code/gridpilot/experiments_v2/scripts/03_run_tier_sweep.py",
+    "--output-dir",
+    "/home/rubisa/code/gridpilot/experiments_v2/data/tier_sweep",
+    "--workers",
+    "18",
+    "--max-jobs",
+    "20000"
+  ],
+  "n_cells": 864,
+  "trace": "/home/rubisa/code/gridpilot/data/traces/m100_real_jobs_extended.parquet",
+  "countries": [
+    "SE",
+    "CH",
+    "FR",
+    "IT",
+    "DE",
+    "PL"
+  ],
+  "mw": [
+    1,
+    10,
+    50
+  ],
+  "tiers": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "seeds": 8,
+  "wall_seconds": 26
+}

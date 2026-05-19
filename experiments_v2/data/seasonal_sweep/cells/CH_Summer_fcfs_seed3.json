@@ -1,0 +1,1 @@
+{"country": "CH", "season": "Summer", "layer": "fcfs", "seed": 3, "mw": 10, "ci_source": "synth", "n_completed": 1000, "n_truncated": 0, "energy_kwh": 41.702499999999304, "ci_weighted_mean": 31.186250880924526, "cfe_canonical_pct": 96.10171863988444, "co2_g_facility": 1560.6535528340835, "p95_slowdown": 1.0}

@@ -1,0 +1,1 @@
+{"country": "DE", "season": "Autumn", "layer": "replay", "seed": 2, "mw": 10, "ci_source": "synth", "n_completed": 1000, "n_truncated": 0, "energy_kwh": 68.52541666666639, "ci_weighted_mean": 350.6013279994751, "cfe_canonical_pct": 56.17483400006562, "co2_g_facility": 28830.122502060487, "p95_slowdown": 1.0}

@@ -1,0 +1,1 @@
+{"country": "DE", "season": "Summer", "layer": "fsla_M3", "seed": 1, "mw": 10, "ci_source": "synth", "n_completed": NaN, "n_truncated": NaN, "energy_kwh": 219.16625000000383, "ci_weighted_mean": 312.06628575855854, "cfe_canonical_pct": 60.991714280180176, "co2_g_facility": 81415.62319399303, "p95_slowdown": 57.640000001589456}

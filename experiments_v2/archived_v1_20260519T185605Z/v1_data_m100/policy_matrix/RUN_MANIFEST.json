@@ -1,0 +1,26 @@
+{
+  "git_sha": "a167a906fed4dd17e021a13363480282665eb3e9",
+  "command_line": "scripts/m100/replay_policy_matrix.py --jobs data/traces/m100_real_jobs_extended.parquet --ci configs/grids/DE.yaml --pue raps/config/marconi100.yaml --policies FCFS,EASY,SAF,RLBackfilling,GridPilot-PUE --mechanisms none,M0,M1,M2,M3 --seeds 8 --workers 18 --output-dir data/m100/policy_matrix/ --force",
+  "args": {
+    "jobs": "data/traces/m100_real_jobs_extended.parquet",
+    "ci": "configs/grids/DE.yaml",
+    "t_amb": "None",
+    "pue": "raps/config/marconi100.yaml",
+    "policies": "FCFS,EASY,SAF,RLBackfilling,GridPilot-PUE",
+    "mechanisms": "none,M0,M1,M2,M3",
+    "seeds": "8",
+    "seed_base": "20260517",
+    "output_dir": "data/m100/policy_matrix",
+    "workers": "18",
+    "time_step": "3600",
+    "total_nodes": "980",
+    "node_power_kw": "1.5",
+    "force": "True",
+    "quiet": "False"
+  },
+  "python_version": "3.14.4 (main, Apr  8 2026, 04:02:31) [GCC 15.2.0]",
+  "platform": "Linux-7.0.0-15-generic-x86_64-with-glibc2.43",
+  "hostname": "mochi",
+  "wall_time_s": 233.0,
+  "n_cells": 200
+}

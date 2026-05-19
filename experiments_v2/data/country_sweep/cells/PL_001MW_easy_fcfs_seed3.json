@@ -1,0 +1,1 @@
+{"country": "PL", "mw": 1, "layer": "easy_fcfs", "seed": 3, "nodes": 667, "n_completed": 20000, "n_truncated": 0, "energy_kwh": 259.4720833335136, "ci_weighted_mean": 705.4455058827195, "cfe_canonical_pct": 11.819311764660057, "co2_g_it": 183043.41508965366, "co2_g_facility": 219652.0981074665, "source": "v2_scheduler", "_wall_s": 2.1457672119140625e-06}

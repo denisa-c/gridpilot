@@ -1,0 +1,1 @@
+{"country": "DE", "season": "Winter", "layer": "fcfs", "seed": 1, "mw": 10, "ci_source": "synth", "n_completed": 1000, "n_truncated": 0, "energy_kwh": 32.67374999999937, "ci_weighted_mean": 367.5554962629761, "cfe_canonical_pct": 54.05556296712799, "co2_g_facility": 14411.299675226497, "p95_slowdown": 1.0}

@@ -1,0 +1,44 @@
+{
+  "kind": "country_sweep",
+  "version": 2,
+  "git_sha": "unknown",
+  "python": "3.14.4",
+  "host": "mochi",
+  "argv": [
+    "/home/rubisa/code/gridpilot/experiments_v2/scripts/02_run_country_sweep.py",
+    "--output-dir",
+    "/home/rubisa/code/gridpilot/experiments_v2/data/country_sweep",
+    "--workers",
+    "18",
+    "--max-jobs",
+    "20000"
+  ],
+  "n_cells": 1296,
+  "trace": "/home/rubisa/code/gridpilot/data/traces/m100_real_jobs_extended.parquet",
+  "countries": [
+    "SE",
+    "CH",
+    "FR",
+    "IT",
+    "DE",
+    "PL"
+  ],
+  "mw": [
+    1,
+    10,
+    50
+  ],
+  "layers": [
+    "fcfs",
+    "easy_fcfs",
+    "saf",
+    "replay",
+    "fsla_none",
+    "fsla_M0",
+    "fsla_M1",
+    "fsla_M2",
+    "fsla_M3"
+  ],
+  "seeds": 8,
+  "wall_seconds": 9313
+}

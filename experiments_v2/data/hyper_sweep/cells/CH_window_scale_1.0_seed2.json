@@ -1,0 +1,1 @@
+{"country": "CH", "mw": 10, "seed": 2, "hyper": "window_scale", "value": 1.0, "energy_kwh": 7101.479166670219, "ci_weighted_mean": 32.35852137243225, "cfe_canonical_pct": 95.95518482844597, "cfe_pct": 32.39935885400369, "cfe_abs_pct": 100.0, "p95_slowdown": 1680.6166666666666, "n_jobs": 20000}

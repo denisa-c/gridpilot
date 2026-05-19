@@ -1,0 +1,1 @@
+{"country": "IT", "season": "Spring", "layer": "easy_fcfs", "seed": 2, "mw": 10, "ci_source": "synth", "n_completed": 1000, "n_truncated": 0, "energy_kwh": 68.52541666666639, "ci_weighted_mean": 288.05458607620835, "cfe_canonical_pct": 63.993176740473956, "co2_g_facility": 23686.872640339217, "p95_slowdown": 1.0}

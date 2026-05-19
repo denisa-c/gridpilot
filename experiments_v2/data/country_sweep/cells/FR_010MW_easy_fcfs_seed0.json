@@ -1,0 +1,1 @@
+{"country": "FR", "mw": 10, "layer": "easy_fcfs", "seed": 0, "nodes": 6667, "n_completed": 20000, "n_truncated": 0, "energy_kwh": 2392.492500002609, "ci_weighted_mean": 59.26095298275851, "cfe_canonical_pct": 92.5923808771552, "co2_g_it": 141781.385554257, "co2_g_facility": 170137.66266489204, "source": "v2_scheduler", "_wall_s": 2.384185791015625e-06}

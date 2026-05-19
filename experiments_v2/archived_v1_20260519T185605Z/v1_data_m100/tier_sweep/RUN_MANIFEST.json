@@ -1,0 +1,23 @@
+{
+  "git_sha": "6420dd857ba42e5f50035298a677db00c7bbf22a",
+  "command_line": "gridpilot/scripts/multicountry/replay_single_tier_sweep.py --jobs gridpilot/data/traces/m100_real_jobs.parquet --output-dir gridpilot/data/m100/tier_sweep/ --force",
+  "args": {
+    "jobs": "gridpilot/data/traces/m100_real_jobs.parquet",
+    "grids": "SE,CH,FR,IT,DE,PL",
+    "grids_dir": "/home/rubisa/code/gridpilot/configs/grids",
+    "mw": "1,10,50",
+    "tiers": "0,1,2,3,4,5",
+    "seeds": "8",
+    "seed_base": "20260517",
+    "workers": "4",
+    "pue_yaml": "/home/rubisa/code/gridpilot/raps/config/marconi100.yaml",
+    "output_dir": "gridpilot/data/m100/tier_sweep",
+    "force": "True",
+    "quiet": "False"
+  },
+  "python_version": "3.14.4 (main, Apr  8 2026, 04:02:31) [GCC 15.2.0]",
+  "platform": "Linux-7.0.0-15-generic-x86_64-with-glibc2.43",
+  "hostname": "mochi",
+  "wall_time_s": 19.7,
+  "n_cells": 864
+}

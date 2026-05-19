@@ -1,0 +1,1 @@
+{"country": "CH", "season": "Spring", "layer": "replay", "seed": 2, "mw": 10, "ci_source": "synth", "n_completed": 1000, "n_truncated": 0, "energy_kwh": 68.52541666666639, "ci_weighted_mean": 32.8943458056269, "cfe_canonical_pct": 95.88820677429663, "co2_g_facility": 2704.9185027695826, "p95_slowdown": 1.0}
