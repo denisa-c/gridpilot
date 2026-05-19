@@ -123,39 +123,36 @@ def run(
             _, _, j = heapq.heappop(waiting_heap)
             _dispatch(j, now)
 
-        # 2. EASY backfill against the priority head.  We do NOT pop
-        #    the head from the waiting heap; we walk a copy in
-        #    priority order, allowing backfill of any non-head entry
-        #    that fits now and finishes by the head's reservation.
+        # 2. EASY backfill against the priority head.  Bounded scan +
+        #    in-place mutation of the heap.  Walking sorted(heap)
+        #    every iteration would be O(W log W); instead we use
+        #    heapq.nsmallest(MAX_BACKFILL_SCAN+1, ...) which is
+        #    O(W log K) with K=MAX_BACKFILL_SCAN, and then heapify
+        #    the survivors only if at least one backfill happened.
+        import os
+        MAX_BACKFILL_SCAN = int(os.environ.get("EASY_BACKFILL_SCAN", "256"))
         if waiting_heap:
             head_idx = waiting_heap[0][2]
             reservation = _earliest_reservation(
                 running_heap, free_nodes, int(nodes_req[head_idx])
             )
-            # Sort waiting once into a stable list so we can pop in order.
-            # (heapq doesn't support O(1) skip-and-keep; popping all and
-            #  re-pushing the survivors is O(N log N) but N is tiny in
-            #  steady state.  For very large queues, this would warrant
-            #  a smarter data structure.)
-            candidates: list[tuple[float, float, int]] = []
+            top = heapq.nsmallest(MAX_BACKFILL_SCAN + 1, waiting_heap)
             backfilled_idxs: set[int] = set()
-            for entry in sorted(waiting_heap):
+            for entry in top:
                 _, _, k = entry
                 if k == head_idx:
-                    candidates.append(entry)
                     continue
                 nodes_k   = int(nodes_req[k])
                 runtime_k = float(runtimes[k])
-                fits_now = free_nodes >= nodes_k
-                finishes_by_reservation = (now + runtime_k) <= reservation
-                if fits_now and finishes_by_reservation:
-                    _dispatch(k, now)
-                    backfilled_idxs.add(k)
-                else:
-                    candidates.append(entry)
-            # Rebuild the waiting heap from the survivors.
-            waiting_heap = [e for e in candidates if e[2] not in backfilled_idxs]
-            heapq.heapify(waiting_heap)
+                if free_nodes < nodes_k:
+                    continue
+                if (now + runtime_k) > reservation:
+                    continue
+                _dispatch(k, now)
+                backfilled_idxs.add(k)
+            if backfilled_idxs:
+                waiting_heap = [e for e in waiting_heap if e[2] not in backfilled_idxs]
+                heapq.heapify(waiting_heap)
 
         # 3. Advance time.
         next_submit = submit_times[submit_idx] if submit_idx < n_jobs else float("inf")

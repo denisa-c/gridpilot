@@ -28,6 +28,7 @@ the result — this module does NOT compute energy itself.
 from __future__ import annotations
 
 import heapq
+from collections import deque
 from typing import Optional
 
 import numpy as np
@@ -84,7 +85,10 @@ def run(
     n_jobs       = len(work)
     free_nodes   = total_nodes
     submit_idx   = 0
-    waiting: list[int] = []
+    # deque (NOT list): popleft() is O(1) vs list.pop(0)'s O(W).
+    # For traces with hundreds of thousands of jobs, this is the
+    # difference between an O(N) and an O(N×W) main loop.
+    waiting: deque[int] = deque()
     running_heap: list[tuple[float, int]] = []   # (end_epoch, nodes)
     dispatch_log: list[dict] = []
 
@@ -98,7 +102,7 @@ def run(
         #    NO reordering — if the head doesn't fit, we don't look
         #    at later jobs (that's the pathology EASY-FCFS fixes).
         while waiting and free_nodes >= nodes_req[waiting[0]]:
-            j = waiting.pop(0)
+            j = waiting.popleft()
             nodes_j   = int(nodes_req[j])
             runtime_j = float(runtimes[j])
             start_epoch = now

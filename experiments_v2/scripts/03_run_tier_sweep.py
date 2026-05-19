@@ -43,6 +43,12 @@ from pathlib import Path
 
 import pandas as pd
 
+try:
+    from tqdm import tqdm
+    HAVE_TQDM = True
+except ImportError:
+    HAVE_TQDM = False
+
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "gridpilot" / "src"))
 sys.path.insert(0, str(ROOT / "gridpilot" / "scripts" / "multicountry"))
@@ -130,6 +136,8 @@ def main(argv=None) -> int:
     p.add_argument("--workers",   type=int, default=4)
     p.add_argument("--jobs",      type=Path, default=None)
     p.add_argument("--no-cache",  action="store_true")
+    p.add_argument("--max-jobs",  type=int, default=None,
+                    help="sub-sample the trace to at most this many jobs")
     args = p.parse_args(argv)
 
     countries = [c.strip() for c in args.countries.split(",")]
@@ -146,6 +154,12 @@ def main(argv=None) -> int:
         return 2
     print(f"[03-tier-sweep] trace: {jobs_path}")
     jobs_df = pd.read_parquet(jobs_path)
+    if args.max_jobs is not None and len(jobs_df) > args.max_jobs:
+        import numpy as _np
+        rng = _np.random.default_rng(20260519)
+        idx = rng.choice(len(jobs_df), size=args.max_jobs, replace=False)
+        jobs_df = jobs_df.iloc[sorted(idx)].reset_index(drop=True)
+        print(f"[03-tier-sweep] sub-sampled to {len(jobs_df)} jobs")
     cooling_params = _resolve_cooling_params()
 
     cells = [(c, m, t, s)
@@ -166,24 +180,35 @@ def main(argv=None) -> int:
           f"workers={args.workers}")
 
     t0 = time.time()
+    bar = (tqdm(total=len(to_run), desc="tier-sweep", unit="cell",
+                 smoothing=0.1, mininterval=0.5, dynamic_ncols=True)
+            if HAVE_TQDM else None)
+    def _tick():
+        if bar is not None: bar.update(1)
+        else:
+            el = int(time.time() - t0)
+            print(f"\r  [{len(rows)}/{len(to_run)+len(rows)-len(to_run)}] "
+                  f"elapsed {el//60:02d}:{el%60:02d}", end="", flush=True)
+
     if args.workers <= 1:
         for k, (cid, cell) in enumerate(to_run):
             row = _run(*cell, jobs_df, cooling_params)
             _persist(cells_dir / f"{cid}.json", row)
-            rows.append(row)
+            rows.append(row); _tick()
     else:
         with ProcessPoolExecutor(max_workers=args.workers) as ex:
             futs = {ex.submit(_run, *cell, jobs_df, cooling_params): (cid, cell)
                     for cid, cell in to_run}
-            for k, fut in enumerate(as_completed(futs)):
+            for fut in as_completed(futs):
                 cid, _ = futs[fut]
-                row = fut.result()
+                try:
+                    row = fut.result(timeout=3600)
+                except Exception as exc:
+                    print(f"\n[ERROR] cell {cid} failed: {exc}", flush=True)
+                    _tick(); continue
                 _persist(cells_dir / f"{cid}.json", row)
-                rows.append(row)
-                if (k + 1) % max(1, len(to_run) // 20) == 0:
-                    el = int(time.time() - t0)
-                    print(f"  [{k+1}/{len(to_run)}] {cid}  "
-                          f"(elapsed {el//60:02d}:{el%60:02d})", flush=True)
+                rows.append(row); _tick()
+    if bar is not None: bar.close()
 
     df = pd.DataFrame(rows).sort_values(
         ["country", "mw", "tier", "seed"], kind="stable")

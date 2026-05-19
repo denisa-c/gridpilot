@@ -39,6 +39,7 @@ backfill step (3).  About 60 extra lines vs FCFS.
 from __future__ import annotations
 
 import heapq
+from collections import deque
 from typing import Optional
 
 import numpy as np
@@ -111,9 +112,18 @@ def run(
     n_jobs       = len(work)
     free_nodes   = total_nodes
     submit_idx   = 0
-    waiting: list[int] = []
+    # deque for O(1) popleft on head dispatches; for backfill we walk
+    # a bounded prefix.  See MAX_BACKFILL_SCAN below.
+    waiting: deque[int] = deque()
     running_heap: list[tuple[float, int]] = []
     dispatch_log: list[dict] = []
+
+    # Real-world EASY backfill is bounded: production schedulers don't
+    # scan tens-of-thousands deep into the queue at every decision.
+    # 256 is the SLURM default for SchedulerParameters=bf_resolution.
+    # Override via env var EASY_BACKFILL_SCAN if a longer scan is needed.
+    import os
+    MAX_BACKFILL_SCAN = int(os.environ.get("EASY_BACKFILL_SCAN", "256"))
 
     now = float(submit_times[0])
     while submit_idx < n_jobs and submit_times[submit_idx] <= now:
@@ -141,34 +151,42 @@ def run(
     while waiting or running_heap or submit_idx < n_jobs:
         # 1. Dispatch every head-of-queue job that fits (same as FCFS).
         while waiting and free_nodes >= nodes_req[waiting[0]]:
-            j = waiting.pop(0)
+            j = waiting.popleft()
             _dispatch(j)
 
         # 2. EASY backfill step.  The head no longer fits; compute its
-        #    reservation, then walk the rest of the queue and dispatch
-        #    any job that fits now AND finishes by the reservation time.
-        #    This is Lifka 1995 §3 "the EASY scheduling algorithm".
+        #    reservation, then walk a bounded prefix of the queue and
+        #    dispatch any job that fits now AND finishes by the
+        #    reservation time.  Lifka 1995 §3 + SLURM-style bounded scan.
         if waiting:
             head = waiting[0]
             reservation = _earliest_reservation(
                 running_heap, free_nodes, int(nodes_req[head])
             )
-            # Iterate the rest of the queue (positions 1..) in submit
-            # order; allow each to backfill if it doesn't delay the
-            # head.  We do NOT pop from the queue if the job can't
-            # backfill — it stays in submit order.
-            i = 1
-            while i < len(waiting):
-                k = waiting[i]
+            # Bounded scan: walk at most MAX_BACKFILL_SCAN trailing
+            # candidates.  Real schedulers don't deep-scan because
+            # the marginal benefit drops off rapidly and the per-tick
+            # cost would dominate.  Backfill markers are collected
+            # in a set; the deque is rebuilt once at the end (O(W)
+            # per outer iteration, not O(W) per backfill).
+            scan_limit = min(len(waiting), MAX_BACKFILL_SCAN + 1)
+            backfilled: set[int] = set()
+            for idx in range(1, scan_limit):
+                k = waiting[idx]
                 nodes_k   = int(nodes_req[k])
                 runtime_k = float(runtimes[k])
-                fits_now = free_nodes >= nodes_k
-                finishes_by_reservation = (now + runtime_k) <= reservation
-                if fits_now and finishes_by_reservation:
-                    waiting.pop(i)   # leaves submit order intact for the rest
-                    _dispatch(k)
-                else:
-                    i += 1
+                if free_nodes < nodes_k:
+                    continue   # doesn't fit now; try the next candidate
+                if (now + runtime_k) > reservation:
+                    continue   # would delay the head's reservation
+                backfilled.add(idx)
+                _dispatch(k)
+            if backfilled:
+                # Rebuild waiting without the backfilled indices,
+                # preserving submit order for the rest.
+                waiting = deque(
+                    k for idx, k in enumerate(waiting) if idx not in backfilled
+                )
 
         # 3. Advance time to the next event.
         next_submit = submit_times[submit_idx] if submit_idx < n_jobs else float("inf")

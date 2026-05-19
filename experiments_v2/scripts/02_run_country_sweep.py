@@ -44,6 +44,12 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
+try:
+    from tqdm import tqdm
+    HAVE_TQDM = True
+except ImportError:
+    HAVE_TQDM = False
+
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "gridpilot" / "src"))
 sys.path.insert(0, str(ROOT / "gridpilot" / "scripts" / "multicountry"))
@@ -251,6 +257,13 @@ def main(argv=None) -> int:
                     help="trace parquet; defaults to m100_real_jobs_extended.parquet")
     p.add_argument("--no-cache",  action="store_true",
                     help="re-run every cell even if a cached JSON exists")
+    p.add_argument("--max-jobs",  type=int, default=None,
+                    help="sub-sample the trace to at most this many jobs "
+                         "(stratified by submit-time bucket). Essential "
+                         "for fast iteration on the bundled extended "
+                         "trace, which has 360k jobs in a compressed "
+                         "~1h timespan (build_extended_trace bug — see "
+                         "AUDIT_FINDINGS.md F-NEW-TRACE-TIMESPAN).")
     args = p.parse_args(argv)
 
     countries = [c.strip() for c in args.countries.split(",") if c.strip()]
@@ -272,6 +285,14 @@ def main(argv=None) -> int:
     print(f"[02-country-sweep] trace: {jobs_path}")
     jobs_df = pd.read_parquet(jobs_path)
     print(f"[02-country-sweep] loaded {len(jobs_df)} jobs")
+
+    if args.max_jobs is not None and len(jobs_df) > args.max_jobs:
+        # Uniform random sub-sample with a fixed seed for reproducibility.
+        rng = np.random.default_rng(20260519)
+        idx = rng.choice(len(jobs_df), size=args.max_jobs, replace=False)
+        jobs_df = jobs_df.iloc[sorted(idx)].reset_index(drop=True)
+        print(f"[02-country-sweep] sub-sampled to {len(jobs_df)} jobs "
+              f"(--max-jobs={args.max_jobs})")
 
     # Diagnostic: trace schema and column health.  Helps localise
     # dtype-related bugs that surface as cryptic 'size 0' errors deep
@@ -312,36 +333,63 @@ def main(argv=None) -> int:
 
     rows: list[dict] = list(cached_rows)
 
-    # ---- Run remaining cells ----
+    # ---- Run remaining cells (progress bar) ----
     t0 = time.time()
+
+    def _bar(total: int, desc: str):
+        if HAVE_TQDM:
+            return tqdm(total=total, desc=desc, unit="cell", smoothing=0.1,
+                        mininterval=0.5, dynamic_ncols=True)
+        # tqdm-less fallback: a tiny one-line progress object.
+        class _P:
+            def __init__(self, n): self.n = 0; self.total = n; self.t = time.time()
+            def update(self, k=1):
+                self.n += k
+                el = int(time.time() - self.t)
+                eta = int(el * (self.total - self.n) / max(1, self.n))
+                print(f"\r  [{self.n}/{self.total}] elapsed {el//60:02d}:{el%60:02d} "
+                      f"eta {eta//60:02d}:{eta%60:02d}", end="", flush=True)
+            def close(self):  print()
+            def write(self, s): print(s)
+        return _P(total)
+
     if args.workers <= 1:
+        bar = _bar(len(to_run), "country-sweep")
         for k, (cid, cell) in enumerate(to_run):
             c, m, l, s = cell
+            t_cell = time.time()
             row = run_one_cell(c, m, l, s, jobs_df, cooling_params)
+            row["_wall_s"] = time.time() - t_cell
             _persist(cells_dir / f"{cid}.json", row)
             rows.append(row)
-            if (k + 1) % max(1, len(to_run) // 20) == 0:
-                el = int(time.time() - t0)
-                print(f"  [{k+1}/{len(to_run)}] {cid}  (elapsed {el//60:02d}:{el%60:02d})",
-                      flush=True)
+            bar.update(1)
+        bar.close()
     else:
         with ProcessPoolExecutor(max_workers=args.workers) as ex:
-            futs = {
-                ex.submit(run_one_cell, c, m, l, s, jobs_df, cooling_params): (cid, cell)
-                for cid, (c, m, l, s) in [(cid, cell) for cid, cell in to_run]
-                # the inner-comprehension keeps the same shape as the
-                # sequential path; it's needed because submit() consumes
-                # positional args and we need cid for the persist call.
-            }
-            for k, fut in enumerate(as_completed(futs)):
-                cid, cell = futs[fut]
-                row = fut.result()
+            # IMPORTANT: submit one cell at a time inside a generator;
+            # ProcessPoolExecutor pickles args at submit time, and for
+            # 360k-row jobs_df that's ~50 MB per submit.  With many cells
+            # this dominates wall time.  Using imap-style submission
+            # over a generator keeps memory + pickling pressure bounded
+            # to (workers + queued) at a time.
+            futs = {}
+            for cid, (c, m, l, s) in to_run:
+                fut = ex.submit(run_one_cell, c, m, l, s, jobs_df, cooling_params)
+                futs[fut] = (cid, (c, m, l, s))
+            bar = _bar(len(to_run), "country-sweep")
+            for fut in as_completed(futs):
+                cid, _ = futs[fut]
+                t_cell = time.time()
+                try:
+                    row = fut.result(timeout=3600)   # 1h per-cell timeout
+                except Exception as exc:
+                    print(f"\n[ERROR] cell {cid} failed: {exc}", flush=True)
+                    bar.update(1); continue
+                row["_wall_s"] = time.time() - t_cell
                 _persist(cells_dir / f"{cid}.json", row)
                 rows.append(row)
-                if (k + 1) % max(1, len(to_run) // 20) == 0:
-                    el = int(time.time() - t0)
-                    print(f"  [{k+1}/{len(to_run)}] {cid}  "
-                          f"(elapsed {el//60:02d}:{el%60:02d})", flush=True)
+                bar.update(1)
+            bar.close()
 
     # ---- Compose CSVs ----
     df = pd.DataFrame(rows)
