@@ -194,25 +194,27 @@ def pecs_macros() -> tuple[str, bool, list[str]]:
         # energy that f-SLA elicitation makes movable, computed as
         # (Delta CFE pp / 100) x MW_HEADLINE x 8760 h/y.
         ANNUAL_GWH_PER_MW = 8.76
-        # CFE metric selection.  Two competing metrics:
-        #   * cfe_abs_pct_mean   --- fraction of energy below 150 g/kWh
-        #     (EU 2030 target).  Discriminates between grids OF DIFFERENT
-        #     mean CI but SATURATES at 0 % or 100 % on the cleanest /
-        #     dirtiest grids (SE is always ~100 %, PL always ~0 %).
-        #   * cfe_pct_mean       --- per-country-normalised CFE.  Never
-        #     saturates but only meaningful relative to that grid's own
-        #     [min, max] CI envelope.
-        # ``_pref`` prefers the absolute metric when it is non-degenerate
-        # (neither saturated to 0 nor pinned at 100), and falls back to
-        # the normalised metric on grids where the absolute metric is
-        # degenerate.  Falls back further to None if neither column is
-        # present (older / stub CSVs).
-        def _pref(c: str, layer_: str, mech: str, abs_field: str,
-                   pct_field: str) -> Optional[float]:
-            # First check whether the absolute metric is degenerate on
-            # this grid by inspecting the BASELINE absolute value: if
-            # the no-f-SLA baseline is saturated at 0 or 100, the
-            # f-SLA delta will be ~0 and the metric carries no signal.
+        # CFE metric selection.  Three candidates, in order of preference:
+        #   1. cfe_canonical_pct_mean   --- canonical Google 24/7 CFE
+        #      (1 - effective_CI / CI_ref); threshold-free; ranks grids
+        #      correctly and never saturates.  Primary metric in the
+        #      v1.1 release.
+        #   2. cfe_abs_pct_mean         --- legacy threshold-based
+        #      "absolute CFE" (fraction of energy below 150 g/kWh).
+        #      Saturates on always-clean (SE, CH) and always-dirty (PL)
+        #      grids.  Reported as a secondary EU-Scope-2-style metric.
+        #   3. cfe_pct_mean             --- per-country-normalised CFE.
+        #      Last-resort fallback for stub CSVs that lack the other
+        #      two columns.
+        # ``_pref_cfe`` picks the first non-None / non-saturated metric
+        # from this list.
+        def _pref_cfe(c: str, layer_: str, mech: str,
+                       canonical_field: str,
+                       abs_field: str,
+                       pct_field: str) -> Optional[float]:
+            v = _lookup(c, MW_HEADLINE, layer_, mech, canonical_field)
+            if v is not None:
+                return v
             base_abs = _lookup(c, MW_HEADLINE, layer_, "none",
                                  abs_field.replace("_lift_pp", "_pct"))
             abs_saturated = (
@@ -224,6 +226,16 @@ def pecs_macros() -> tuple[str, bool, list[str]]:
                 if v is not None:
                     return v
             return _lookup(c, MW_HEADLINE, layer_, mech, pct_field)
+
+        # Backward-compat shim for callers below.
+        def _pref(c: str, layer_: str, mech: str, abs_field: str,
+                   pct_field: str) -> Optional[float]:
+            canonical_field = (
+                abs_field.replace("cfe_abs_pct", "cfe_canonical_pct")
+                          .replace("cfe_abs_lift", "cfe_canonical_lift")
+            )
+            return _pref_cfe(c, layer_, mech, canonical_field,
+                              abs_field, pct_field)
 
         for c in COUNTRIES:
             lift  = _pref(c, "fsla", M_LEAD, "cfe_abs_lift_pp_mean", "cfe_lift_pp_mean")

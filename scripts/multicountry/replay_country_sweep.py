@@ -112,22 +112,54 @@ def _cfe_pct(result: dict) -> float:
     return float(np.clip(100.0 * g / e, 0.0, 100.0))
 
 
-# Absolute CI threshold (g CO2eq / kWh) below which an hour counts as
-# "clean".  150 g/kWh sits between the EU 2030 grid-average target
-# (~150) and the cleanest European grids' present-day mean (~30).
-# Hours below this threshold are a tiny fraction in Poland (CI 612)
-# and most hours in Sweden (CI 11), so the absolute metric carries
-# strong cross-grid signal.
-CFE_ABS_THRESHOLD_G = 150.0
+# Reference CI (g CO2eq / kWh) used as the denominator in the
+# canonical 24/7 CFE formulation:
+#
+#     CFE = 1 - effective_CI / CI_ref
+#
+# CI_ref is the typical fossil-only marginal CI for the European
+# grid (gas peaker; ~800 g CO2eq/kWh, NEEDS source).  This makes the
+# load-weighted CFE bounded in [0, 1] and threshold-free, matching
+# Google 24/7 CFE (Radovanovic et al.\ 2021; Kamatar et al.\ 2025).
+# Previous releases used a 150 g/kWh CFE threshold that saturated
+# on clean (SE) and dirty (PL) grids; we keep the saturating
+# threshold-based metric available as ``_cfe_threshold_pct`` for
+# Scope-2-disclosure-style reporting but no longer make it the
+# primary metric.
+CFE_REF_CI_G = 800.0
+CFE_LEGACY_THRESHOLD_G = 150.0
 
 
-def _cfe_abs_pct(result: dict, ci_df: pd.DataFrame) -> float:
-    """Absolute CFE: percentage of completed-job energy that ran
-    while grid CI was below CFE_ABS_THRESHOLD_G.
+def _cfe_canonical_pct(result: dict, ci_df: pd.DataFrame) -> float:
+    """Canonical 24/7 CFE in [0, 100]: 100 * (1 - effective_CI / CI_ref).
 
-    This is the metric a Scope-2 disclosure would actually report.
-    It does not saturate, it ranks grids by their true cleanliness,
-    and it has strictly more dynamic range than ``_cfe_pct``.
+    The effective CI is the energy-weighted average grid CI experienced
+    by completed jobs.  This is a load-weighted matching ratio between
+    consumed energy and carbon-free supply --- not a fraction of hours
+    below a threshold --- and is the canonical metric of the
+    carbon-aware-scheduling literature.
+
+    Returns a value in [0, 100]; clipped at 0 if the effective CI
+    exceeds CFE_REF_CI_G.
+    """
+    eff = _ci_weighted_mean_g(result, ci_df)
+    if eff is None or eff <= 0:
+        return 0.0
+    return float(np.clip(100.0 * (1.0 - eff / CFE_REF_CI_G), 0.0, 100.0))
+
+
+def _cfe_threshold_pct(result: dict, ci_df: pd.DataFrame,
+                         threshold_g: float = CFE_LEGACY_THRESHOLD_G) -> float:
+    """Legacy threshold-based "absolute CFE": fraction of completed-job
+    energy that ran while grid CI was below ``threshold_g``.
+
+    This is what the EU Scope-2 disclosure literature calls "CFE %",
+    but it is NOT the canonical 24/7 CFE.  Kept here for backward
+    compatibility with v1.0 of the kit and reported as a secondary
+    metric.  Saturates at 100 % on always-clean grids (SE, CH) and
+    at 0 % on always-dirty grids (PL) at the default 150 g/kWh
+    threshold; a different threshold can be passed to discriminate
+    between grids in a different CI band.
     """
     completed = result.get("completed", [])
     if not completed:
@@ -135,7 +167,6 @@ def _cfe_abs_pct(result: dict, ci_df: pd.DataFrame) -> float:
     ci = ci_df["carbon_intensity_gCO2eq_per_kWh"].sort_index()
     ci_vals = ci.values.astype(float)
     ci_ts = np.array([t.timestamp() for t in pd.to_datetime(ci.index)])
-    # Approximate per-job CI by the grid CI at the job's start time.
     clean_kwh = 0.0
     total_kwh = 0.0
     for j in completed:
@@ -147,13 +178,17 @@ def _cfe_abs_pct(result: dict, ci_df: pd.DataFrame) -> float:
         ci_here = float(ci_vals[idx])
         e_job = (float(j.get("nodes", 1))
                  * float(j.get("runtime", 0.0))
-                 / 3600.0)   # nodes-hours, proxy for kWh at unit power
+                 / 3600.0)
         total_kwh += e_job
-        if ci_here <= CFE_ABS_THRESHOLD_G:
+        if ci_here <= threshold_g:
             clean_kwh += e_job
     if total_kwh <= 0:
         return 0.0
     return float(np.clip(100.0 * clean_kwh / total_kwh, 0.0, 100.0))
+
+
+# Backward-compat alias for code paths that still call _cfe_abs_pct.
+_cfe_abs_pct = _cfe_threshold_pct
 
 
 def _ci_weighted_mean_g(result: dict, ci_df: pd.DataFrame) -> float:
@@ -368,7 +403,8 @@ def run_one_cell(
         "co2_g_facility": co2_g_fac,
         "co2_tonnes_y": co2_t_y,
         "cfe_pct":          _cfe_pct(result),
-        "cfe_abs_pct":      _cfe_abs_pct(result, ci_df),
+        "cfe_abs_pct":      _cfe_threshold_pct(result, ci_df),
+        "cfe_canonical_pct": _cfe_canonical_pct(result, ci_df),
         "ci_weighted_mean": _ci_weighted_mean_g(result, ci_df),
         "p50_slowdown":     float(np.percentile(slowdowns, 50)),
         "p95_slowdown": float(np.percentile(slowdowns, 95)),
@@ -388,6 +424,7 @@ def _compute_deltas(headline: pd.DataFrame) -> pd.DataFrame:
             .groupby(["country", "mw", "layer"])
             .agg(base_cfe=("cfe_pct", "mean"),
                   base_cfe_abs=("cfe_abs_pct", "mean"),
+                  base_cfe_canon=("cfe_canonical_pct", "mean"),
                   base_ciwm=("ci_weighted_mean", "mean"),
                   base_co2_t=("co2_tonnes_y", "mean"),
                   base_co2_fac=("co2_g_facility", "mean"))
@@ -395,7 +432,39 @@ def _compute_deltas(headline: pd.DataFrame) -> pd.DataFrame:
     )
     out = headline.merge(base, on=["country", "mw", "layer"], how="left")
     out["cfe_lift_pp_vs_none"]     = out["cfe_pct"]     - out["base_cfe"]
-    out["cfe_abs_lift_pp_vs_none"] = out["cfe_abs_pct"] - out["base_cfe_abs"]
+    out["cfe_abs_lift_pp_vs_none"]    = out["cfe_abs_pct"] - out["base_cfe_abs"]
+    out["cfe_canonical_lift_pp_vs_none"] = (
+        out["cfe_canonical_pct"] - out["base_cfe_canon"]
+    )
+
+    # Item C: lift vs *plain FCFS* (no CI awareness).  The
+    # ``layer="pue"`` ``mechanism="none"`` rows are produced by
+    # replay_fcfs_pue --- a non-CI-aware FCFS baseline with the same
+    # PUE accounting.  Comparing the f-SLA result against THIS baseline
+    # (rather than the CI-aware EASY-FCFS in layer="fsla" mech="none")
+    # isolates the value of the *tier declaration* on top of plain
+    # FCFS, which is the honest "what would happen without the
+    # contract" counterfactual.
+    base_naive = (
+        headline.query("layer == 'pue' and mechanism == 'none'")
+            .groupby(["country", "mw"])
+            .agg(base_cfe_naive=("cfe_pct", "mean"),
+                  base_cfe_canon_naive=("cfe_canonical_pct", "mean"),
+                  base_ciwm_naive=("ci_weighted_mean", "mean"),
+                  base_co2_t_naive=("co2_tonnes_y", "mean"))
+            .reset_index()
+    )
+    out = out.merge(base_naive, on=["country", "mw"], how="left")
+    out["cfe_lift_pp_vs_fcfs"] = out["cfe_pct"] - out["base_cfe_naive"]
+    out["cfe_canonical_lift_pp_vs_fcfs"] = (
+        out["cfe_canonical_pct"] - out["base_cfe_canon_naive"]
+    )
+    out["ci_weighted_lift_g_vs_fcfs"] = (
+        out["base_ciwm_naive"] - out["ci_weighted_mean"]
+    )
+    out["co2_avoided_tonnes_y_vs_fcfs"] = (
+        out["base_co2_t_naive"] - out["co2_tonnes_y"]
+    )
     # CI-weighted mean lift: baseline_ci - fsla_ci  (positive means
     # the contract shifted compute toward cleaner hours, in g/kWh).
     out["ci_weighted_lift_g"]      = out["base_ciwm"]   - out["ci_weighted_mean"]
@@ -404,8 +473,10 @@ def _compute_deltas(headline: pd.DataFrame) -> pd.DataFrame:
         (out["base_co2_fac"] - out["co2_g_facility"]) / out["base_co2_fac"].replace(0, np.nan)
     ) * 100.0
     out["delta_facility_pp"] = out["delta_facility_pp"].fillna(0.0)
-    return out.drop(columns=["base_cfe", "base_cfe_abs", "base_ciwm",
-                              "base_co2_t", "base_co2_fac"])
+    return out.drop(columns=["base_cfe", "base_cfe_abs", "base_cfe_canon",
+                              "base_ciwm", "base_co2_t", "base_co2_fac",
+                              "base_cfe_naive", "base_cfe_canon_naive",
+                              "base_ciwm_naive", "base_co2_t_naive"])
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -625,6 +696,12 @@ def main(argv=None) -> int:
                   cfe_lift_pp_mean=("cfe_lift_pp_vs_none", "mean"),
                   cfe_abs_pct_mean=("cfe_abs_pct", "mean"),
                   cfe_abs_lift_pp_mean=("cfe_abs_lift_pp_vs_none", "mean"),
+                  cfe_canonical_pct_mean=("cfe_canonical_pct", "mean"),
+                  cfe_canonical_lift_pp_mean=("cfe_canonical_lift_pp_vs_none", "mean"),
+                  cfe_lift_pp_vs_fcfs_mean=("cfe_lift_pp_vs_fcfs", "mean"),
+                  cfe_canonical_lift_pp_vs_fcfs_mean=("cfe_canonical_lift_pp_vs_fcfs", "mean"),
+                  ci_weighted_lift_g_vs_fcfs_mean=("ci_weighted_lift_g_vs_fcfs", "mean"),
+                  co2_avoided_t_y_vs_fcfs_mean=("co2_avoided_tonnes_y_vs_fcfs", "mean"),
                   ci_weighted_mean_g=("ci_weighted_mean", "mean"),
                   ci_weighted_lift_g_mean=("ci_weighted_lift_g", "mean"),
                   co2_avoided_t_y_mean=("co2_avoided_tonnes_y", "mean"),

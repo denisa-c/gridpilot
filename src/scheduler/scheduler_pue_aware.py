@@ -49,6 +49,19 @@ def replay_proact_opt_pue(
     seed: int = 42,
     elastic_fraction: float = 0.30,
     max_replicas: int = 4,
+    # T4 elastic-burst envelope (CarbonScaler-style symmetric scaling).
+    # When ``j["elastic"]`` is True, the dispatcher scales replicas in
+    # the closed interval [t4_replica_min, t4_replica_max] inversely
+    # with the facility signal: cleanest hour -> t4_replica_max (more
+    # parallelism, more energy in clean hours); dirtiest hour ->
+    # t4_replica_min (less parallelism, less energy in dirty hours).
+    # The expected makespan is preserved when t4_replica_max =
+    # 1 / t4_replica_min, which is the case for the default 0.5/2.0
+    # envelope from the f-SLA contract specification (Sect. 3.1 of
+    # the PECS paper).  Set t4_replica_min=1.0 to restore the v1.0
+    # behaviour (replicas in [1, max_replicas], no scale-down).
+    t4_replica_min: float = 0.5,
+    t4_replica_max: float = 2.0,
     power_cap_threshold_pct: int = 75,
     power_cap_factor: float = 0.80,
     short_job_threshold_s: int = 600,
@@ -158,10 +171,22 @@ def replay_proact_opt_pue(
             pue_samples.append(cur_pue)
 
         for j in running:
-            replicas = max(1, min(max_replicas, int(round(max_replicas - (max_replicas - 1) * fs_norm)))) \
-                if j["elastic"] else 1
+            # T4 elastic-burst replica scaling.  Symmetric envelope:
+            # fs_norm=0 (cleanest hour) -> replicas = t4_replica_max,
+            # fs_norm=1 (dirtiest hour) -> replicas = t4_replica_min.
+            # Replicas are now a float; in dirty hours t4_replica_min
+            # can be < 1 (downscaling --- the CarbonScaler regime), which
+            # the v1.0 dispatcher did NOT support (it only scaled up
+            # 1 -> max_replicas).  Properly wires the T4 contract clause.
+            if j["elastic"]:
+                replicas = (t4_replica_max
+                              - (t4_replica_max - t4_replica_min) * fs_norm)
+                replicas = float(max(t4_replica_min,
+                                       min(t4_replica_max, replicas)))
+            else:
+                replicas = 1.0
             applied_cap = power_cap_factor if cur_facility_signal > local_high else 1.0
-            step_progress = (replicas / 1.0) * applied_cap * (time_step / max(j["runtime"], 1))
+            step_progress = replicas * applied_cap * (time_step / max(j["runtime"], 1))
             remaining = max(1.0 - j["progress"], 0)
             frac_used = min(1.0, remaining / max(step_progress, 1e-9))
             actual_dt = time_step * frac_used
