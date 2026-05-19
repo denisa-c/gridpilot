@@ -1,11 +1,11 @@
 {
-  "git_sha": "4abc92146c19fdd9cbc61d5ce827e6951d4cc33c",
+  "git_sha": "8566ded86a4b56b814cd43825837b3f047483246",
   "command_line": "gridpilot/scripts/multicountry/replay_spatial_sweep.py --jobs gridpilot/data/traces/m100_real_jobs.parquet --output-dir gridpilot/data/m100/spatial_sweep/ --force",
   "args": {
     "jobs": "gridpilot/data/traces/m100_real_jobs.parquet",
-    "grids_dir": "/Users/nisa/Library/CloudStorage/Dropbox/Apps/Overleaf/EuroPar2026-GridPilot-Denisa/gridpilot/configs/grids",
+    "grids_dir": "/home/rubisa/code/gridpilot/configs/grids",
     "grids": "SE,CH,FR,IT,DE,PL",
-    "egress_yaml": "/Users/nisa/Library/CloudStorage/Dropbox/Apps/Overleaf/EuroPar2026-GridPilot-Denisa/gridpilot/configs/network/egress_emissions.yaml",
+    "egress_yaml": "/home/rubisa/code/gridpilot/configs/network/egress_emissions.yaml",
     "mw": "1,10,50",
     "seeds": "8",
     "seed_base": "20260517",
@@ -16,9 +16,9 @@
     "force": "True",
     "quiet": "False"
   },
-  "python_version": "3.14.0 (main, Oct  7 2025, 09:34:52) [Clang 17.0.0 (clang-1700.0.13.3)]",
-  "platform": "macOS-15.5-arm64-arm-64bit-Mach-O",
-  "hostname": "maki.local",
-  "wall_time_s": 4.3,
+  "python_version": "3.14.4 (main, Apr  8 2026, 04:02:31) [GCC 15.2.0]",
+  "platform": "Linux-7.0.0-15-generic-x86_64-with-glibc2.43",
+  "hostname": "mochi",
+  "wall_time_s": 1.6,
   "n_cells": 432
 }

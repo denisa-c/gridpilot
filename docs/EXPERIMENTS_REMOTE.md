@@ -246,7 +246,7 @@ PYTHONPATH=gridpilot/src python3 \
     --grids SE,CH,FR,IT,DE,PL \
     --mw 10 \
     --seeds 8 \
-    --workers 4 \
+    --workers 16 \
     --output-dir gridpilot/data/m100/hyper_sweep/ \
     --force
 ```
