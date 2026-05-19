@@ -253,16 +253,17 @@ def main(argv=None) -> int:
     p.add_argument("--layers",    default=",".join(ALL_LAYERS),
                     help="comma-separated subset of layers to run")
     p.add_argument("--workers",   type=int, default=4)
-    p.add_argument("--jobs",      type=Path, default=10000,
-                    help="trace parquet; defaults to m100_real_jobs_extended.parquet")
+    p.add_argument("--jobs",      type=Path, default=None,
+                    help="trace parquet; defaults to m100_real_jobs_extended.parquet "
+                         "(falls back to m100_real_jobs.parquet if extended is absent)")
     p.add_argument("--no-cache",  action="store_true",
                     help="re-run every cell even if a cached JSON exists")
-    p.add_argument("--max-jobs",  type=int, default=10000,
+    p.add_argument("--max-jobs",  type=int, default=None,
                     help="sub-sample the trace to at most this many jobs "
-                         "(stratified by submit-time bucket). Essential "
-                         "for fast iteration on the bundled extended "
-                         "trace, which has 360k jobs in a compressed "
-                         "~1h timespan (build_extended_trace bug — see "
+                         "(fixed seed 20260519 for reproducibility). Strongly "
+                         "recommended for the bundled extended trace, which "
+                         "has 360k rows in a compressed ~1h timespan "
+                         "(build_extended_trace bug — see "
                          "AUDIT_FINDINGS.md F-NEW-TRACE-TIMESPAN).")
     args = p.parse_args(argv)
 
@@ -278,7 +279,13 @@ def main(argv=None) -> int:
     cells_dir.mkdir(exist_ok=True)
 
     # ---- Load trace ----
-    jobs_path = args.jobs or (JOBS_EXT if JOBS_EXT.exists() else JOBS_JAN)
+    # Defensive Path coercion: catches the case where --jobs receives a
+    # non-Path default by accident (was the source of an
+    # AttributeError where int leaked through the `or` short-circuit).
+    raw_jobs = args.jobs if args.jobs is not None else (
+        JOBS_EXT if JOBS_EXT.exists() else JOBS_JAN
+    )
+    jobs_path = Path(raw_jobs)
     if not jobs_path.exists():
         print(f"ABORT: jobs trace not found at {jobs_path}", file=sys.stderr)
         return 2
