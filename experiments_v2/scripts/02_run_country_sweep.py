@@ -253,11 +253,11 @@ def main(argv=None) -> int:
     p.add_argument("--layers",    default=",".join(ALL_LAYERS),
                     help="comma-separated subset of layers to run")
     p.add_argument("--workers",   type=int, default=4)
-    p.add_argument("--jobs",      type=Path, default=None,
+    p.add_argument("--jobs",      type=Path, default=10000,
                     help="trace parquet; defaults to m100_real_jobs_extended.parquet")
     p.add_argument("--no-cache",  action="store_true",
                     help="re-run every cell even if a cached JSON exists")
-    p.add_argument("--max-jobs",  type=int, default=None,
+    p.add_argument("--max-jobs",  type=int, default=10000,
                     help="sub-sample the trace to at most this many jobs "
                          "(stratified by submit-time bucket). Essential "
                          "for fast iteration on the bundled extended "
