@@ -498,9 +498,10 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
     p.add_argument("--pue", type=Path, default=None,
                    help="Optional RAPS YAML for PUE calibration "
                         "(falls back to M100 defaults).")
-    p.add_argument("--alpha", type=float, nargs=4,
+    p.add_argument("--alpha", type=float, nargs=len(TIER_NAMES),
                    default=list(DEFAULT_ALPHA),
-                   help=f"Dirichlet concentration α (4 floats; default {DEFAULT_ALPHA}).")
+                   help=f"Dirichlet concentration alpha "
+                        f"({len(TIER_NAMES)} floats; default {DEFAULT_ALPHA}).")
     p.add_argument("--seeds", type=int, default=32,
                    help="Number of Monte-Carlo seeds (default 32).")
     p.add_argument("--bootstrap", type=int, default=10_000,

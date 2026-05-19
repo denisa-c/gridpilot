@@ -23,10 +23,11 @@ The four-tier f-SLA ladder is:
 Synthetic prior
 ~~~~~~~~~~~~~~~
 Tier assignments are sampled from a Dirichlet(α) distribution over the
-4-simplex Δ³.  The default concentration α = (3.0, 3.0, 2.5, 1.5) gives
-expectation E[π] = (0.30, 0.30, 0.25, 0.15) (biased toward T1 to be
-conservative) and variance ≈ 0.02 per component.  Larger Σα → tighter
-prior; α/k → flatter.
+(len(TIER_NAMES)-1)-simplex.  The default concentration
+alpha = DEFAULT_ALPHA = (3.0, 3.0, 2.5, 1.5, 1.0) gives expectation
+E[pi] = alpha / sum(alpha) (biased toward T0/T1 to be conservative)
+and variance ~ 0.02 per component.  Larger sum(alpha) -> tighter
+prior; alpha/k -> flatter.
 
 Length conditioning
 ~~~~~~~~~~~~~~~~~~~
@@ -123,19 +124,20 @@ def sample_prior(
     alpha: tuple[float, ...] = DEFAULT_ALPHA,
     rng: Optional[np.random.Generator] = None,
 ) -> np.ndarray:
-    """One Dirichlet draw → one tier-prior π ∈ Δ³.
+    """One Dirichlet draw → one tier-prior π on the (len(TIER_NAMES)-1)-simplex.
 
     Parameters
     ----------
-    alpha : tuple of 4 positive floats
-        Dirichlet concentration. Default ``(3, 3, 2.5, 1.5)``.
+    alpha : tuple of ``len(TIER_NAMES)`` positive floats
+        Dirichlet concentration.  The current ladder is T0..T4 with
+        default ``DEFAULT_ALPHA = (3.0, 3.0, 2.5, 1.5, 1.0)``.
     rng : np.random.Generator, optional
         Source of randomness. If None, uses ``np.random.default_rng()``.
 
     Returns
     -------
-    pi : (4,) array of floats summing to 1.0
-        Probability mass for tiers (T0, T1, T2, T3).
+    pi : (len(TIER_NAMES),) array of floats summing to 1.0
+        Probability mass for tiers (T0, T1, T2, T3, T4).
     """
     rng = np.random.default_rng() if rng is None else rng
     n_tiers = len(TIER_NAMES)
@@ -158,7 +160,7 @@ def assign_tiers(
     length conditioning.
 
     Returns a copy of ``jobs_df`` augmented with the columns:
-        ``tier``           int in {0, 1, 2, 3}
+        ``tier``           int in {0, 1, 2, 3, 4}  (T0..T4 inclusive)
         ``d_max_hours``    deferral window from the tier ladder
         ``slowdown_max``   QoS clause from the tier ladder
         ``service_credit_h`` per-hour credit rate
@@ -181,7 +183,9 @@ def assign_tiers(
         return jobs_df.copy(), empty_report
 
     if abs(pi.sum() - 1.0) > 1e-6:
-        raise ValueError(f"pi must lie on the 4-simplex; sum={pi.sum()}")
+        raise ValueError(
+            f"pi must lie on the {len(TIER_NAMES)-1}-simplex; sum={pi.sum()}"
+        )
 
     # Raw draw
     tiers = rng.choice(len(TIER_NAMES), size=n, p=pi)
@@ -194,16 +198,21 @@ def assign_tiers(
         long_mask = runtimes > LONG_JOB_THRESHOLD_S
         short_mask = runtimes <= SHORT_JOB_THRESHOLD_S
 
-        # Forbid T0 for long jobs: re-sample from {T1, T2, T3}
+        # Forbid T0 for long jobs: re-sample from the remaining tiers
+        # (T1..T_last).  Using ``len(TIER_NAMES)`` keeps this correct when
+        # the ladder is extended (we now ship T0..T4 including T4 elastic
+        # burst); previously this list was hard-coded as
+        # ``[T_HOUR, T_DAY, T_WEEK]`` and broke as soon as ``pi`` grew.
         long_t0 = long_mask & (tiers == T_RIGID)
         if long_t0.any():
+            high_tier_ids = list(range(T_HOUR, len(TIER_NAMES)))
             p_high = pi[1:] / pi[1:].sum()
-            new_tiers = rng.choice([T_HOUR, T_DAY, T_WEEK],
-                                    size=int(long_t0.sum()), p=p_high)
+            new_tiers = rng.choice(high_tier_ids,
+                                   size=int(long_t0.sum()), p=p_high)
             tiers[long_t0] = new_tiers
             n_long_reassigned = int(long_t0.sum())
 
-        # Forbid T2/T3 for short jobs: re-sample from {T0, T1}
+        # Forbid T2..T_last for short jobs: re-sample from {T0, T1}.
         short_high = short_mask & (tiers >= T_DAY)
         if short_high.any():
             p_low = pi[:2] / pi[:2].sum()

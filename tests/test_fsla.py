@@ -75,24 +75,29 @@ def mini_t_amb(mini_ci) -> pd.Series:
 
 
 # ─────────────────────────────────────────────────────────────────────
-# 1. Dirichlet draw lies on the 4-simplex
+# 1. Dirichlet draw lies on the (len(TIER_NAMES)-1)-simplex
+#    (current ladder is T0..T4 inclusive → 5-simplex).
 # ─────────────────────────────────────────────────────────────────────
 def test_dirichlet_simplex():
+    from scheduler.fsla import TIER_NAMES
+    n_tiers = len(TIER_NAMES)
     rng = np.random.default_rng(0)
     for _ in range(100):
         pi = sample_prior(DEFAULT_ALPHA, rng=rng)
-        assert pi.shape == (4,)
+        assert pi.shape == (n_tiers,)
         assert np.all(pi >= 0)
         assert abs(pi.sum() - 1.0) < 1e-9
 
 
 # ─────────────────────────────────────────────────────────────────────
 # 2. Default α matches the documented expectation within 0.01
+#    DEFAULT_ALPHA = (3.0, 3.0, 2.5, 1.5, 1.0)  → E[π] proportional to α.
 # ─────────────────────────────────────────────────────────────────────
 def test_default_alpha_expectation():
     rng = np.random.default_rng(20260513)
     samples = np.stack([sample_prior(DEFAULT_ALPHA, rng=rng) for _ in range(10_000)])
-    expected = np.array([0.30, 0.30, 0.25, 0.15])
+    alpha_arr = np.asarray(DEFAULT_ALPHA, dtype=float)
+    expected = alpha_arr / alpha_arr.sum()
     actual = samples.mean(axis=0)
     np.testing.assert_allclose(actual, expected, atol=0.01)
 
@@ -101,12 +106,14 @@ def test_default_alpha_expectation():
 # 3. Length conditioning: long jobs are never T0
 # ─────────────────────────────────────────────────────────────────────
 def test_length_conditioning_long_jobs(mini_jobs):
+    from scheduler.fsla import TIER_NAMES
     rng = np.random.default_rng(1)
-    # Use a prior that puts ALL mass on T0 to force the conditioning rule
-    pi = np.array([1.0, 0.0, 0.0, 0.0])
-    # but Dirichlet would never give exactly this; sample one with
-    # very high T0 weight using assign_tiers directly:
-    pi = sample_prior((100.0, 1.0, 1.0, 1.0), rng=rng)  # ~99 % T0
+    # Force ~99 % of the prior mass onto T0 so the conditioning rule
+    # is exercised for every long job in mini_jobs.  The alpha vector
+    # must match the current ladder length (T0..T_last).
+    n_tiers = len(TIER_NAMES)
+    alpha = (100.0,) + (1.0,) * (n_tiers - 1)
+    pi = sample_prior(alpha, rng=rng)
     assigned, report = assign_tiers(mini_jobs, pi, rng=rng)
     long_mask = mini_jobs["run_time"].values > LONG_JOB_THRESHOLD_S
     assert (assigned.loc[long_mask, "tier"] != T_RIGID).all(), (
@@ -116,16 +123,19 @@ def test_length_conditioning_long_jobs(mini_jobs):
 
 
 # ─────────────────────────────────────────────────────────────────────
-# 4. Length conditioning: short jobs are never T2/T3
+# 4. Length conditioning: short jobs are never T2..T_last
 # ─────────────────────────────────────────────────────────────────────
 def test_length_conditioning_short_jobs(mini_jobs):
+    from scheduler.fsla import TIER_NAMES
     rng = np.random.default_rng(2)
-    # Force most mass onto T2/T3 to trigger short-job re-sampling
-    pi = sample_prior((1.0, 1.0, 50.0, 50.0), rng=rng)
+    # Force most mass onto the high-tier band so the short-job rule fires.
+    n_tiers = len(TIER_NAMES)
+    alpha = (1.0, 1.0) + (50.0,) * (n_tiers - 2)
+    pi = sample_prior(alpha, rng=rng)
     assigned, report = assign_tiers(mini_jobs, pi, rng=rng)
     short_mask = mini_jobs["run_time"].values <= SHORT_JOB_THRESHOLD_S
     assert (assigned.loc[short_mask, "tier"] < T_DAY).all(), (
-        "short jobs (run_time ≤ 1h) must never be assigned T2 or T3"
+        "short jobs (run_time ≤ 1h) must never be assigned T2 or higher"
     )
     assert report.n_short_reassigned_from_high_tier >= 1
 
