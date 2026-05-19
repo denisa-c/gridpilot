@@ -508,6 +508,15 @@ def main(argv=None) -> int:
         return cells_dir / f"{cid}.json"
 
     # Build the work list, partitioning into already-done and to-do.
+    # A cached row must contain every column the downstream aggregator
+    # (``_compute_deltas`` + ``COUNTRY_SUMMARY`` build) reads off it ---
+    # otherwise a stale cell file from an older schema would silently
+    # poison the final CSV.  Files that fail either the JSON parse or
+    # the schema check are deleted and re-computed.
+    REQUIRED_KEYS = {
+        "country", "mw", "layer", "mechanism", "seed",
+        "cfe_pct", "co2_g_facility", "co2_tonnes_y",
+    }
     to_run = []
     cached_rows: list[dict] = []
     for cell in cells:
@@ -516,10 +525,13 @@ def main(argv=None) -> int:
         cp = _cell_path(cid)
         if (not args.no_cell_cache) and cp.exists():
             try:
-                cached_rows.append(json.loads(cp.read_text()))
+                row = json.loads(cp.read_text())
+                if not REQUIRED_KEYS.issubset(row):
+                    raise ValueError("schema mismatch")
+                cached_rows.append(row)
                 continue
             except Exception:
-                # Corrupt checkpoint; re-run this cell.
+                # Corrupt or stale-schema checkpoint; re-run this cell.
                 cp.unlink(missing_ok=True)
         to_run.append((cid, cell))
 
@@ -528,13 +540,24 @@ def main(argv=None) -> int:
               f"{cells_dir} already on disk; {len(to_run)} to run",
               flush=True)
 
+    def _json_default(o):
+        # numpy scalars are not JSON-serialisable by default --- cast to
+        # native Python primitives.  Without this, json.dumps fails on
+        # e.g. numpy.float64 returned by .mean() / .percentile().
+        if isinstance(o, np.generic):
+            return o.item()
+        raise TypeError(f"not JSON-serialisable: {type(o).__name__}")
+
     def _persist(cid: str, row: dict) -> None:
         if args.no_cell_cache:
             return
         try:
-            _cell_path(cid).write_text(json.dumps(row))
+            # Write to a sibling .tmp and rename, so a kill mid-write
+            # never leaves a half-written JSON the resume path will trip on.
+            tmp = _cell_path(cid).with_suffix(".json.tmp")
+            tmp.write_text(json.dumps(row, default=_json_default))
+            tmp.replace(_cell_path(cid))
         except Exception as exc:
-            # Persistence failure shouldn't break the sweep; log + continue.
             print(f"[country-sweep] WARN: failed to checkpoint {cid}: {exc}",
                   flush=True)
 

@@ -89,10 +89,10 @@ def panel_tier_monotonicity(ax: plt.Axes):
 def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument("--matrix", type=Path,
-                    default=Path("data/m100/policy_matrix_pecs/policy_matrix.csv"))
+                    default=Path("data/m100/policy_matrix/policy_matrix.csv"))
     p.add_argument("--out", type=Path, default=Path("figs/fig_latency_per_tier.pdf"))
     p.add_argument("--outcomes", type=Path,
-                    default=Path("data/m100/policy_matrix_pecs/HYPOTHESIS_OUTCOMES.json"))
+                    default=Path("data/m100/policy_matrix/HYPOTHESIS_OUTCOMES.json"))
     args = p.parse_args(argv)
     df = pd.read_csv(args.matrix)
 

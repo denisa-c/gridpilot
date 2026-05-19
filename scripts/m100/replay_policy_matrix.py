@@ -36,6 +36,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import platform
+import socket
+import subprocess
 import sys
 import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -479,12 +482,38 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     h_outcomes = _evaluate_hypotheses(headline)
     (out_dir / "HYPOTHESIS_OUTCOMES.json").write_text(json.dumps(h_outcomes, indent=2))
+
+    # RUN_MANIFEST.json: marker of a clean completion.  The bash entry
+    # point (scripts/run_all_experiments.sh) uses (CSV + manifest) as
+    # the "step done" check; without this file a re-invocation always
+    # redoes the ~26-minute replay even when the CSV is already present.
+    try:
+        git_sha = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],
+            cwd=str(Path(__file__).resolve().parents[2]),
+            stderr=subprocess.DEVNULL,
+        ).decode().strip()
+    except Exception:
+        git_sha = "unknown"
+    manifest = {
+        "git_sha": git_sha,
+        "command_line": " ".join(sys.argv),
+        "args": {k: str(v) for k, v in vars(args).items()},
+        "python_version": sys.version,
+        "platform": platform.platform(),
+        "hostname": socket.gethostname(),
+        "wall_time_s": round(time.time() - t0, 1),
+        "n_cells": len(cells),
+    }
+    (out_dir / "RUN_MANIFEST.json").write_text(json.dumps(manifest, indent=2))
+
     if not args.quiet:
         print(f"[matrix] hypothesis outcomes: " + ", ".join(
             f"{k}={'PASS' if v.get('passed') else 'INVESTIGATE'}"
             for k, v in h_outcomes.items() if "passed" in v
         ), flush=True)
         print(f"[matrix] total wall time {time.time()-t0:.1f}s", flush=True)
+        print(f"[matrix] wrote {out_dir / 'RUN_MANIFEST.json'}", flush=True)
     return 0
 
 

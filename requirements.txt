@@ -1,16 +1,50 @@
-# Core scientific Python (figure generation, data analysis)
-numpy>=1.24,<2.0
+# =====================================================================
+# gridpilot reproducibility-kit dependencies
+# ---------------------------------------------------------------------
+# Tested on Python 3.10 - 3.14 on macOS (Apple Silicon) and Linux x86_64.
+# For Python 3.13+, pip will resolve to numpy >= 2.1 and pyarrow >= 18
+# automatically; the code does not use any numpy-1.x-only APIs.  If you
+# are on Python <= 3.12, pip is free to pick numpy 1.26 or numpy 2.x
+# --- both work.  Quickest install on a fresh remote machine:
+#
+#     python3 -m venv .venv && source .venv/bin/activate
+#     pip3 install --upgrade pip setuptools wheel
+#     pip3 install -r requirements.txt
+#
+# Total cold install size on Linux x86_64 (no GPU stack): ~ 280 MiB.
+# =====================================================================
+
+# Core scientific Python (data analysis, figure generation, controllers)
+numpy>=1.24,<3.0
 pandas>=2.0,<3.0
 matplotlib>=3.7,<4.0
 scipy>=1.11,<2.0
 
-# For the gridpilot_replay simulator (separate codebase, tracked here as
-# environment requirement for reproducibility verification)
+# Parquet I/O is required: pandas.read_parquet / to_parquet is called
+# directly by scripts/m100/{build_extended_trace,fetch_real_ci_series,
+# inject_fsla_prior}.py and indirectly by replay_policy_matrix.py and
+# replay_country_sweep.py via the bundled trace and ENTSO-E CI cache.
+pyarrow>=14.0
+
+# YAML loading for ENTSO-E grid configs and the RAPS system YAMLs
+# (configs/grids/*.yaml, raps/config/*.yaml).
 pyyaml>=6.0
+
+# Optional --- only used by scripts/figures/make_architecture_pptx.py
+# (the editable PowerPoint master).  The run-all script gates the call
+# behind ``python -c "import pptx"`` so omitting this is safe; install
+# only if you want the .pptx masters re-generated.
+python-pptx>=0.6.21
+
+# Optional --- only used by the bundled raps/ submodule, which is NOT
+# exercised by run_all_experiments.sh.  Install only if you import the
+# RAPS package directly.
 networkx>=3.1
 
-# Optional: for ENTSO-E live data fetching (requires API key)
-# entsoe-py>=0.6.6
+# Optional --- ENTSO-E live data fetching (requires an API key set via
+# ENTSOE_API_KEY).  The fetcher uses urllib + xml.etree from stdlib;
+# entsoe-py is NOT required.  Left here as documentation only:
+# # entsoe-py>=0.6.6
 
-# Optional: for ExaDigiT/RAPS integration (separate install)
-# See docs/EXADIGIT_RAPS_SETUP.md
+# Optional --- pytest for the bundled test suite.
+pytest>=7.0
