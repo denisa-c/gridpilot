@@ -1,0 +1,25 @@
+{
+  "git_sha": "081896d51f686f54680e9e1b4bcc17e89246955c",
+  "command_line": "scripts/multicountry/replay_country_sweep.py --jobs data/traces/m100_real_jobs.parquet --grids configs/grids/SE.yaml,configs/grids/FR.yaml,configs/grids/CH.yaml,configs/grids/IT.yaml,configs/grids/DE.yaml,configs/grids/PL.yaml --pue-yaml raps/config/marconi100.yaml --mw 1,10,50 --fsla-mechanisms none,M0,M1,M2,M3 --pue-mechanisms none,GridPilot-PUE --seeds 8 --workers 4 --output-dir data/m100/country_sweep/ --force",
+  "args": {
+    "jobs": "data/traces/m100_real_jobs.parquet",
+    "grids": "configs/grids/SE.yaml,configs/grids/FR.yaml,configs/grids/CH.yaml,configs/grids/IT.yaml,configs/grids/DE.yaml,configs/grids/PL.yaml",
+    "mw": "1,10,50",
+    "fsla_mechanisms": "none,M0,M1,M2,M3",
+    "pue_mechanisms": "none,GridPilot-PUE",
+    "pue_yaml": "raps/config/marconi100.yaml",
+    "seeds": "8",
+    "seed_base": "20260517",
+    "workers": "4",
+    "output_dir": "data/m100/country_sweep",
+    "time_step": "3600",
+    "node_power_kw": "1.5",
+    "force": "True",
+    "quiet": "False",
+    "no_cell_cache": "False"
+  },
+  "python_version": "3.14.4 (main, Apr  8 2026, 04:02:31) [GCC 15.2.0]",
+  "platform": "Linux-7.0.0-15-generic-x86_64-with-glibc2.43",
+  "hostname": "mochi",
+  "wall_time_s": 0.054158687591552734
+}
