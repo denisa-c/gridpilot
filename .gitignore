@@ -76,6 +76,11 @@ data/traces/m100_real_jobs_extended.parquet
 !data/m100/.gitkeep
 !data/m100/policy_matrix/.gitkeep
 !data/m100/country_sweep/.gitkeep
+# Keep the in-repo Marconi100 public subset (Feb-2022 SLURM job_table).
+# Published by scripts/m100/publish_m100_subset.sh; the build_extended_trace.py
+# default M100_ROOT resolves to it so the kit works without the raw ExaMon dump.
+!data/m100_public/
+!data/m100_public/**
 # Keep reproducibility headline outputs versioned.
 !data/m100/policy_matrix/policy_matrix.csv
 !data/m100/policy_matrix/HYPOTHESIS_OUTCOMES.json

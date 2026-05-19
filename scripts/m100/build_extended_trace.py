@@ -3,11 +3,16 @@
 scripts/m100/build_extended_trace.py
 ====================================
 Build an extended M100 job trace by concatenating the bundled
-January 2022 parquet with the Feb 2022 slice from the user's
-local Marconi100 archive.
+January 2022 parquet with the Feb 2022 slice from the Marconi100
+ExaData archive.
 
-Default source: /Users/nisa/code/M100 (granted via cowork).
-Override with --m100-root.  Output: data/traces/m100_real_jobs_extended.parquet.
+Default source: the in-repo public subset under
+``gridpilot/data/m100_public/`` (published from the full ExaMon dump
+by ``scripts/m100/publish_m100_subset.sh``).  If that subset is not
+present, the script falls back to the original CINECA raw dump root
+``/Users/nisa/code/M100`` (developer workstation only).  Either way,
+override with ``--m100-root``.  Output:
+``data/traces/m100_real_jobs_extended.parquet``.
 
 The two source files have *different* schemas:
 
@@ -41,8 +46,22 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_M100_ROOT = Path("/Users/nisa/code/M100")
 FEB_JOB_TABLE = "year_month=22-02/plugin=job_table/metric=job_info_marconi100/a_0.parquet"
+
+# Default M100 source-root resolution order:
+#   1. ``gridpilot/data/m100_public/``   — the published subset
+#      (single Feb 2022 job_table parquet, ~tens of MiB; ships with
+#      the public repo and is the recommended source on remote
+#      machines).
+#   2. ``/Users/nisa/code/M100``          — the full ExaMon raw dump
+#      (developer workstation only; hundreds of GiB).
+# Override either with ``--m100-root``.
+_PUBLIC_SUBSET = ROOT / "data" / "m100_public"
+_LEGACY_LOCAL = Path("/Users/nisa/code/M100")
+if (_PUBLIC_SUBSET / FEB_JOB_TABLE).exists():
+    DEFAULT_M100_ROOT = _PUBLIC_SUBSET
+else:
+    DEFAULT_M100_ROOT = _LEGACY_LOCAL
 
 
 # Candidate column-name lists for each unified field.  Patterns are

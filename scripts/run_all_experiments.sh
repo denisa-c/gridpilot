@@ -44,7 +44,10 @@
 #   FORCE=1 bash ... stub                                   # force in stub mode
 #   FRESH=1 bash ... full                                   # rerun even completed steps
 #   ENTSOE_API_KEY=<tok> bash ... full                      # real CI fetch
-#   M100_ROOT=/path/to/M100 bash ... full                   # extended trace
+#   M100_ROOT=/path/to/M100 bash ... full                   # override extended-trace source
+#       (default: gridpilot/data/m100_public/, the in-repo subset.
+#        Falls back to the developer-workstation raw dump
+#        /Users/nisa/code/M100 if the in-repo subset is missing.)
 #
 # Resumability (full mode):
 #   * A step is treated as COMPLETE if its canonical artefact AND the
@@ -230,24 +233,41 @@ mkdir -p "${PROJECT_ROOT}/papers/pecs2026/figs"
 mkdir -p "${PROJECT_ROOT}/papers/whpc2026/figs"
 
 # =====================================================================
-# Step 0a: Extend the M100 trace with Feb 2022 if M100_ROOT is set
+# Step 0a: Extend the M100 trace with Feb 2022
+#   Source resolution order:
+#     1. $M100_ROOT (if exported by the caller)
+#     2. gridpilot/data/m100_public/   (the in-repo published subset)
+#     3. /Users/nisa/code/M100         (developer-workstation raw dump)
 # =====================================================================
 EXT_TRACE="data/traces/m100_real_jobs_extended.parquet"
 JAN_TRACE="data/traces/m100_real_jobs.parquet"
+FEB_KEY="year_month=22-02/plugin=job_table/metric=job_info_marconi100/a_0.parquet"
+
+# Resolve M100_ROOT in priority order.
+if [[ -n "${M100_ROOT:-}" && -f "${M100_ROOT}/${FEB_KEY}" ]]; then
+    M100_SRC="${M100_ROOT}"
+elif [[ -f "data/m100_public/${FEB_KEY}" ]]; then
+    M100_SRC="data/m100_public"
+elif [[ -f "/Users/nisa/code/M100/${FEB_KEY}" ]]; then
+    M100_SRC="/Users/nisa/code/M100"
+else
+    M100_SRC=""
+fi
 
 if [[ "${MODE}" == "full" ]] \
    && [[ ! -f "${EXT_TRACE}" ]] \
-   && [[ -d "${M100_ROOT:-/Users/nisa/code/M100}" ]]; then
+   && [[ -n "${M100_SRC}" ]]; then
     _step_begin "Build extended Jan+Feb 2022 M100 trace"
+    echo "[run-all] M100 source: ${M100_SRC}"
     PYTHONPATH=src "${PYTHON}" scripts/m100/build_extended_trace.py \
-        --m100-root "${M100_ROOT:-/Users/nisa/code/M100}" \
+        --m100-root "${M100_SRC}" \
         --jan-jobs "${JAN_TRACE}" \
         --out      "${EXT_TRACE}" || \
         echo "[run-all] WARN: could not build extended trace; using Jan-only"
     _step_end
 else
     _step_skip "Build extended Jan+Feb 2022 M100 trace" \
-        "MODE=${MODE} or M100_ROOT missing or extended trace already present"
+        "MODE=${MODE} / no M100 source found / extended trace already present"
 fi
 
 # Prefer the extended trace if present.

@@ -76,9 +76,14 @@ needs network during a run.
 
 **Optional:**
 
-- The full Marconi100 dataset (`M100_ROOT`) for the **extended Jan+Feb
-  2022 trace**.  Without it the kit uses the bundled January-only
-  trace (1 994 jobs, also called `m100_real_jobs.parquet`).
+- The full Marconi100 ExaMon raw dump (`M100_ROOT`) for the
+  **extended Jan+Feb 2022 trace**.  The kit ships a curated subset
+  in-repo (`gridpilot/data/m100_public/`, ~tens of MiB, just the
+  Feb 2022 SLURM `sacct` parquet), so step 0a runs out of the box on
+  any clone — you only need `M100_ROOT` if you want to point at a
+  different ExaMon dump (e.g. a more recent month).  Without either,
+  the kit falls back to the bundled January-only trace
+  (1 994 jobs, `m100_real_jobs.parquet`).
 - An **ENTSO-E Transparency Platform** API token
   (`ENTSOE_API_KEY`).  Without it the kit synthesises hourly CI from
   the 2020–2024 diurnal envelopes per country.

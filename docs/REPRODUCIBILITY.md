@@ -180,7 +180,7 @@ completed steps.
 | `FRESH` | `0` | When `1`, rerun even completed steps |
 | `FORCE` | `0` | Force `--force` on the replay drivers in stub mode |
 | `ENTSOE_API_KEY` | unset | Enables step 0b (real ENTSO-E hourly CI) |
-| `M100_ROOT` | `/Users/nisa/code/M100` | Enables step 0a (extended trace) |
+| `M100_ROOT` | (auto-resolved to `gridpilot/data/m100_public/`) | Overrides step 0a source (extended trace).  The published subset is in-repo, so step 0a runs automatically on any clone; set this only if you have a different ExaMon dump. |
 | `WORKERS` | `4` | Pool size for the two replay drivers |
 | `HEARTBEAT_SEC` | `30` | Heartbeat cadence in seconds |
 

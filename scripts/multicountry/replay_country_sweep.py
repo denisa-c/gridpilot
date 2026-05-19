@@ -603,8 +603,22 @@ def main(argv=None) -> int:
         "country", "mw", "layer", "mechanism", "seed",
         "cfe_pct", "co2_g_facility", "co2_tonnes_y",
     }
+    # Columns that ``_compute_deltas`` reads but that were added AFTER
+    # the original v1.0 cell schema.  Cells written by older runs are
+    # back-filled in place from the inputs they DO carry, so a 1008-cell
+    # campaign does not need to be re-run when the aggregator gains
+    # a derived column.  Each entry: (column, backfill_fn(row) -> value).
+    def _bf_cfe_canonical(row: dict) -> float:
+        eff = float(row.get("ci_weighted_mean", 0.0) or 0.0)
+        if eff <= 0:
+            return 0.0
+        return float(np.clip(100.0 * (1.0 - eff / CFE_REF_CI_G), 0.0, 100.0))
+    DERIVED_BACKFILL = {
+        "cfe_canonical_pct": _bf_cfe_canonical,
+    }
     to_run = []
     cached_rows: list[dict] = []
+    n_backfilled = 0
     for cell in cells:
         g, mw, layer, mech, s = cell
         cid = _cell_id(g, mw, layer, mech, s)
@@ -614,12 +628,23 @@ def main(argv=None) -> int:
                 row = json.loads(cp.read_text())
                 if not REQUIRED_KEYS.issubset(row):
                     raise ValueError("schema mismatch")
+                # Back-fill derived columns added by later script
+                # versions (avoids a needless 1008-cell re-run when
+                # _compute_deltas gains a column).
+                for col, fn in DERIVED_BACKFILL.items():
+                    if col not in row:
+                        row[col] = fn(row)
+                        n_backfilled += 1
                 cached_rows.append(row)
                 continue
             except Exception:
                 # Corrupt or stale-schema checkpoint; re-run this cell.
                 cp.unlink(missing_ok=True)
         to_run.append((cid, cell))
+    if not args.quiet and n_backfilled:
+        print(f"[country-sweep] back-filled {n_backfilled} derived "
+              f"columns from cached cell rows (no re-run needed)",
+              flush=True)
 
     if not args.quiet and cached_rows:
         print(f"[country-sweep] resuming: {len(cached_rows)} cells from "

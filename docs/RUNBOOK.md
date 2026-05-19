@@ -53,7 +53,7 @@ Optional environment variables:
 | ``MODE`` (positional arg) | ``full`` (default) runs real replays; ``stub`` runs seeders only. |
 | ``FORCE=1`` | Force ``--force`` on the replay drivers even in ``stub`` mode. |
 | ``ENTSOE_API_KEY=<tok>`` | Enables step 0b (real ENTSO-E hourly CI fetch). |
-| ``M100_ROOT=<path>`` | Enables step 0a (extends the trace with Feb 2022). |
+| ``M100_ROOT=<path>`` | Overrides the source for step 0a (extends the trace with Feb 2022).  Defaults to the in-repo published subset ``gridpilot/data/m100_public/`` — set this only if you have a different ExaMon dump. |
 | ``WORKERS=<n>`` | Pool size for the two replay drivers (default 4). |
 | ``HEARTBEAT_SEC=<n>`` | Heartbeat cadence in seconds (default 30). |
 
