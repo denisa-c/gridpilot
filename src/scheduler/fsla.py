@@ -69,29 +69,34 @@ except ModuleNotFoundError:  # pragma: no cover
 # ─────────────────────────────────────────────────────────────────────
 # Tier definitions
 # ─────────────────────────────────────────────────────────────────────
-#: Five-tier ladder.  T4 (Elastic) is the CarbonScaler-style burst
-#: tier added in response to the M100 trace showing flat deferral-only
-#: results: a T4 job runs with adaptive replicas (0.5x during the
-#: dirtiest hours, 2x during the cleanest), preserving expected
-#: makespan while shifting energy across the CI curve.  Hanafy et al.
-#: (CarbonScaler, 2023) report up to 51 % CO2 reduction from this
-#: lever alone; we test it as an opt-in tier next to the existing
-#: deferral-only ladder.
-TIER_NAMES = ("T0", "T1", "T2", "T3", "T4")
-T_RIGID, T_HOUR, T_DAY, T_WEEK, T_ELASTIC = 0, 1, 2, 3, 4
+#: Six-tier ladder.  T4 (Elastic burst) is the CarbonScaler-style
+#: replica-scaling tier.  T5 (Spatial) is the GAIA-style geo-shifting
+#: tier introduced as a sketch in the PECS paper: a T5 job carries a
+#: user-declared non-empty spatial clause G_j (set of acceptable grid
+#: codes), and the dispatcher routes it to whichever grid in G_j is
+#: cleanest at dispatch time, charging the inter-site data-egress
+#: emissions against the IT-side savings.  The full multi-grid
+#: evaluation of T5 lives in the C2 follow-on paper; the constants
+#: and the per-job ``spatial_clause`` schema column ship in v1.0 so
+#: future replays can opt in without a kit rebuild.
+TIER_NAMES = ("T0", "T1", "T2", "T3", "T4", "T5")
+T_RIGID, T_HOUR, T_DAY, T_WEEK, T_ELASTIC, T_SPATIAL = 0, 1, 2, 3, 4, 5
 
-#: Default Dirichlet concentration; biases toward T1 with a small
-#: probability mass on T4.  Sum = 11.
-DEFAULT_ALPHA = (3.0, 3.0, 2.5, 1.5, 1.0)
+#: Default Dirichlet concentration; biases toward T1 with small mass
+#: on T4 and T5.  Sum = 11.5.  T5 mass is intentionally low (0.5):
+#: the spatial tier is the most demanding of the six and most jobs
+#: do not satisfy its stateless / data-portable preconditions.
+DEFAULT_ALPHA = (3.0, 3.0, 2.5, 1.5, 1.0, 0.5)
 
-#: tier -> (deferral window in h, max-acceptable-slowdown clause,
-#: service-credit rate per deferred hour).  T3 gets a fixed
-#: checkpoint bonus; T4 trades the deferral window for an elastic-
-#: replica window (the scheduler is allowed to run T4 jobs with
-#: 0.5x..2.0x replicas modulated by the CI signal).
-TIER_WINDOW_H = {0: 0,   1: 1,    2: 24,  3: 168, 4: 24}
-TIER_SLOWMAX  = {0: 1.0, 1: 1.2,  2: 2.0, 3: 4.0, 4: 1.5}
-TIER_CREDIT_H = {0: 0.0, 1: 0.02, 2: 0.04, 3: 0.06, 4: 0.08}
+#: tier -> (deferral / elastic / spatial window in h, max-acceptable-
+#: slowdown clause, service-credit rate per shifted hour).  T3 gets a
+#: fixed checkpoint bonus; T4 trades the deferral window for an
+#: elastic-replica window (0.5x..2.0x); T5 trades it for a spatial
+#: window (route across grids in G_j, charged at the inter-site
+#: egress-emissions YAML in configs/network/egress_emissions.yaml).
+TIER_WINDOW_H = {0: 0,   1: 1,    2: 24,  3: 168, 4: 24,   5: 24}
+TIER_SLOWMAX  = {0: 1.0, 1: 1.2,  2: 2.0, 3: 4.0, 4: 1.5,  5: 1.5}
+TIER_CREDIT_H = {0: 0.0, 1: 0.02, 2: 0.04, 3: 0.06, 4: 0.08, 5: 0.10}
 T3_FIXED_CHECKPOINT_BONUS = 0.5
 #: T4 elastic-burst envelope: minimum and maximum replica multipliers
 #: the scheduler is allowed to apply during the dirtiest / cleanest

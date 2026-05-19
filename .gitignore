@@ -148,3 +148,8 @@ raps/.shell-completion-cache
 *.npz
 *.bak
 *.orig
+
+# -- Keep dependency manifests versioned ----------------------------
+!requirements.txt
+!raps/api_client/requirements.txt
+!raps/pyproject.toml

@@ -13,9 +13,9 @@ the IT-vs-facility gap reported in §7 Finding 2.
 
 Reads the actual ExaDigiT/RAPS canonical configuration at
 ``gridpilot/raps/config/marconi100.yaml`` rather than hard-coding the
-M100 design parameters.  Run from any directory:
+M100 design parameters.  Run from the ``gridpilot/`` directory:
 
-    PYTHONPATH=src python3 scripts/raps_adapter/m100_calibration_check.py
+    python3 scripts/raps_adapter/m100_calibration_check.py
 
 The default ``--raps-repo`` is ``gridpilot/raps`` (one level under
 this script's grandparent), matching the v1.0 release layout.

@@ -1,0 +1,79 @@
+# =====================================================================
+# configs/network/egress_emissions.yaml
+# ---------------------------------------------------------------------
+# Data-egress emissions table for the f-SLA T5 spatial tier and the
+# spatial-routing sweep driver.  Units: g CO2eq per GB transferred
+# from <SRC> to <DST>.
+#
+# Calibration anchors (cite in the C2 paper):
+#   * Aslan et al., "Electricity Intensity of Internet Data
+#     Transmission", J. Industrial Ecology (2017): ~0.06 kWh/GB at
+#     the WAN level.  Range across studies: 0.04 -- 0.10 kWh/GB.
+#   * Per-grid mean CI from configs/grids/<CC>.yaml:
+#       SE  11   g CO2eq/kWh    (very clean)
+#       CH  30
+#       FR  53
+#       IT 258
+#       DE 295
+#       PL 612  g CO2eq/kWh    (very dirty)
+#   * Convention: per-GB egress emissions = network_kWh_per_GB
+#                                          x destination_grid_CI.
+#     We pick the network coefficient at 0.06 kWh/GB and round to
+#     two significant figures.
+#
+# Self-loop entries are zero (no inter-site transfer).  Missing pairs
+# default to 0.0 in egress_emissions_g_co2() --- only the cross-pairs
+# below are meaningful for the C2 paper's H2 (egress-threshold) sweep.
+# =====================================================================
+
+# Self-loops (zero by convention)
+SE_to_SE: 0.0
+CH_to_CH: 0.0
+FR_to_FR: 0.0
+IT_to_IT: 0.0
+DE_to_DE: 0.0
+PL_to_PL: 0.0
+
+# SE -> rest (clean home, dirtier destinations)
+SE_to_CH: 1.8       # 0.06 * 30
+SE_to_FR: 3.2       # 0.06 * 53
+SE_to_IT: 15.5      # 0.06 * 258
+SE_to_DE: 17.7      # 0.06 * 295
+SE_to_PL: 36.7      # 0.06 * 612
+
+# CH -> rest
+CH_to_SE: 0.7
+CH_to_FR: 3.2
+CH_to_IT: 15.5
+CH_to_DE: 17.7
+CH_to_PL: 36.7
+
+# FR -> rest
+FR_to_SE: 0.7
+FR_to_CH: 1.8
+FR_to_IT: 15.5
+FR_to_DE: 17.7
+FR_to_PL: 36.7
+
+# IT -> rest
+IT_to_SE: 0.7
+IT_to_CH: 1.8
+IT_to_FR: 3.2
+IT_to_DE: 17.7
+IT_to_PL: 36.7
+
+# DE -> rest
+DE_to_SE: 0.7
+DE_to_CH: 1.8
+DE_to_FR: 3.2
+DE_to_IT: 15.5
+DE_to_PL: 36.7
+
+# PL -> rest (PL is the dirtiest home; transfers OUT are the most
+# common spatial-routing direction in the C2 sweep, since spatial
+# routing extracts value by moving compute to cleaner destinations).
+PL_to_SE: 0.7       # 0.06 * 11
+PL_to_CH: 1.8
+PL_to_FR: 3.2
+PL_to_IT: 15.5
+PL_to_DE: 17.7

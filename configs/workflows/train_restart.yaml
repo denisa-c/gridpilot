@@ -1,0 +1,31 @@
+# =====================================================================
+# configs/workflows/train_restart.yaml
+# ---------------------------------------------------------------------
+# AI-training workflow with a conditional checkpoint-restart branch:
+# if the validation loss has not improved after a window, a follow-on
+# job restarts training with a higher GPU-utilisation configuration
+# (more replicas / larger batch).  Used as a member of the Elastic
+# AI/HPC class in Fig. workloads.pdf.
+# =====================================================================
+
+name: "train_restart"
+description: >
+  AI training as a 4-segment DAG: (segment_1) -> (eval_1)
+  -> { conditional: segment_2_default | segment_2_restart_high_util }
+  -> (eval_2) -> { conditional: segment_3 | early_terminate }
+  -> (final_eval).  The "restart_high_util" branch carries 2x the GPU
+  count and 1.5x the per-GPU power; the user declares 30 % probability
+  for that branch.
+
+n_segments: 4
+segment_runtime_h: 6.0
+num_nodes_per_segment: 8
+num_nodes_restart_high_util: 16
+power_multiplier_restart: 1.5
+declared_tier: 2                   # T2 (Day) per segment
+
+# Three conditional branches; each is independent (Bernoulli).
+declared_branching:
+  loss_plateaued: 0.30             # triggers segment_2_restart_high_util
+  converged:      0.20             # triggers early_terminate
+  default:        0.50             # continues to segment_2_default

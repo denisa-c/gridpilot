@@ -74,6 +74,26 @@ ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PROJECT_ROOT="$(cd "${ROOT}/.." && pwd)"
 cd "${ROOT}"
 
+# Resolve the Marconi100 PUE anchor YAML. Prefer the submodule path,
+# but fall back to a tracked local copy for remote clones where the
+# submodule has not been initialized.
+RAPS_PUE_YAML="raps/config/marconi100.yaml"
+if [[ ! -f "${RAPS_PUE_YAML}" ]]; then
+    if [[ -f "configs/raps_systems/marconi100.yaml" ]]; then
+        RAPS_PUE_YAML="configs/raps_systems/marconi100.yaml"
+        echo "[run-all] WARN: raps/config/marconi100.yaml missing;"
+        echo "          using fallback ${RAPS_PUE_YAML}"
+    else
+        echo "[run-all] ERROR: missing Marconi100 PUE anchor YAML."
+        echo "         Expected one of:"
+        echo "           - raps/config/marconi100.yaml"
+        echo "           - configs/raps_systems/marconi100.yaml"
+        echo "         If you cloned without submodules, run:"
+        echo "           git submodule update --init --recursive"
+        exit 1
+    fi
+fi
+
 # ---- Pick the Python interpreter -------------------------------------
 if [[ -x "${ROOT}/.venv/bin/python3" ]]; then
     PYTHON="${PYTHON:-${ROOT}/.venv/bin/python3}"
@@ -278,7 +298,7 @@ else
     PYTHONPATH=src "${PYTHON}" scripts/m100/replay_policy_matrix.py \
         --jobs       "${JOB_TRACE}" \
         --ci         configs/grids/DE.yaml \
-        --pue        raps/config/marconi100.yaml \
+        --pue        "${RAPS_PUE_YAML}" \
         --policies   FCFS,EASY,SAF,RLBackfilling,GridPilot-PUE \
         --mechanisms none,M0,M1,M2,M3 \
         --seeds      8 \
@@ -321,7 +341,7 @@ else
     PYTHONPATH=src "${PYTHON}" scripts/multicountry/replay_country_sweep.py \
         --jobs             "${JOB_TRACE}" \
         --grids            configs/grids/SE.yaml,configs/grids/FR.yaml,configs/grids/CH.yaml,configs/grids/IT.yaml,configs/grids/DE.yaml,configs/grids/PL.yaml \
-        --pue-yaml         raps/config/marconi100.yaml \
+        --pue-yaml         "${RAPS_PUE_YAML}" \
         --mw               1,10,50 \
         --fsla-mechanisms  none,M0,M1,M2,M3 \
         --pue-mechanisms   none,GridPilot-PUE \

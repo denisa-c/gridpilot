@@ -261,6 +261,21 @@ def run_one_cell(
             ai = _build_ai_predictor(jobs_local, rng)
             mech: AntiGamingMechanism = build_mechanism(mechanism)
             jobs_with_tiers = mech.assign_tiers(jobs_local, rng=rng, ai_predictor=ai)
+        # C2 forward-compat schema columns: the spatial-routing and
+        # workflow-DAG drivers expect these columns to exist; we add
+        # them here as no-op defaults so PECS v1.0 replays still
+        # produce identical CSV rows (the dispatcher ignores these
+        # columns unless the C2-paper spatial / workflow drivers are
+        # invoked).
+        if "is_spatial_eligible" not in jobs_with_tiers.columns:
+            jobs_with_tiers["is_spatial_eligible"] = False
+        if "spatial_clause" not in jobs_with_tiers.columns:
+            jobs_with_tiers["spatial_clause"] = ""
+        if "dag_node_id" not in jobs_with_tiers.columns:
+            jobs_with_tiers["dag_node_id"] = -1
+        if "dag_parent_id" not in jobs_with_tiers.columns:
+            jobs_with_tiers["dag_parent_id"] = -1
+
         # Mark Tier 4 (Elastic) jobs deterministically elastic so the
         # dispatcher scales their replicas with the CI signal.  This
         # is the CarbonScaler-style burst mechanism that Hanafy et al.

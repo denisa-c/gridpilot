@@ -1,0 +1,28 @@
+# =====================================================================
+# configs/workflows/hpcg_workflow.yaml
+# ---------------------------------------------------------------------
+# Synthetic HPCG-class workflow: a multi-stage simulation with a
+# checkpoint-and-restart pattern.  Used as a workflow-coupled baseline
+# (Fig. workloads.pdf 'Workflow-Coupled' class --- LOW-MOD flexibility,
+# precedence-constrained, stage-deadline-bound).
+# =====================================================================
+
+name: "hpcg_workflow"
+description: >
+  HPCG-class multi-stage simulation: a precedence chain (compute ->
+  checkpoint -> post-process) repeated 8 times, with a conditional
+  early-exit edge if the residual norm has converged below tolerance
+  (declared 20 % conditional branch rate).
+
+n_stages_per_chain: 3
+n_chains: 8
+stage_runtime_h: [2.0, 0.5, 0.5]  # compute, checkpoint, post-process
+num_nodes_per_stage: 4
+declared_tier: 1                   # T1 (Hour) per stage --- tight deadlines
+
+# Conditional branching: the post-process stage decides "converged"
+# with declared 20 % probability; if it fires, the chain terminates
+# early (the next compute stage is skipped).
+declared_branching:
+  converged: 0.20
+  default:   0.80

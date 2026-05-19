@@ -62,11 +62,29 @@ numbers in the LaTeX body text.  The current real measurements are:
 ## Quick start
 
 ```bash
-git clone https://github.com/denisa-c/gridpilot.git
-cd gridpilot
+# From the workspace root (one level above gridpilot/):
+git submodule update --init --recursive
 python3 -m venv .venv && source .venv/bin/activate
+pip3 install --upgrade pip setuptools wheel
+pip3 install -r gridpilot/requirements.txt
+PYTHONPATH=gridpilot/src pytest -q gridpilot/tests/   # expect 54 passed
+bash gridpilot/scripts/run_all_experiments.sh
+```
+
+Dependency files used by this repository:
+
+- `requirements.txt` (main GridPilot dependencies; required)
+- `raps/api_client/requirements.txt` (optional; only if you use RAPS API client code)
+- `raps/pyproject.toml` (optional; only if you develop/run the RAPS package itself)
+
+If you work directly inside `gridpilot/`, use:
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip3 install --upgrade pip setuptools wheel
 pip3 install -r requirements.txt
 ```
+
 
 All subsequent commands assume the virtual environment is active.
 The single most useful entry point is:
@@ -115,7 +133,7 @@ gridpilot/
 │   └── v100_raw/                ← raw V100 measurement campaign telemetry
 ├── configs/                     ← YAML configurations
 │   ├── grids/{SE,CH,FR,IT,DE,PL}.yaml    ← per-country CI configs
-│   └── raps_systems/                     ← ExaDigiT/RAPS reference systems
+│   └── raps_systems/marconi100.yaml      ← tracked fallback PUE anchor
 ├── raps/                        ← bundled ExaDigiT/RAPS submodule (read-only)
 │   └── config/marconi100.yaml   ← cooling-model calibration anchor
 ├── figs/                        ← rendered figure PDFs (auto-generated)
@@ -136,7 +154,10 @@ gridpilot/
 
 The release bundles a copy of the ExaDigiT/RAPS repository under
 `raps/` and consumes its canonical system configurations at
-`raps/config/<system>.yaml`.  This is a **lightweight integration
+`raps/config/<system>.yaml`.  For remote clones where the submodule is
+not initialized, `scripts/run_all_experiments.sh` falls back to
+`configs/raps_systems/marconi100.yaml` for the Marconi100 PUE anchor.
+This is a **lightweight integration
 mode**: we read RAPS configs to extract per-node power, node counts,
 cooling efficiency, and country code, but we do **not** run the RAPS
 simulation engine.
@@ -146,8 +167,13 @@ any RAPS system YAML into a `RAPSSystemConfig` dataclass.  Two
 calibration cross-checks ship under `scripts/raps_adapter/`:
 
 ```bash
-PYTHONPATH=src python3 scripts/raps_adapter/m100_calibration_check.py
-PYTHONPATH=src python3 scripts/raps_adapter/frontier_calibration_check.py
+# Run from the gridpilot/ directory with the project's virtualenv active.
+python3 scripts/raps_adapter/m100_calibration_check.py
+python3 scripts/raps_adapter/frontier_calibration_check.py
+
+# If you are one level above (workspace root), use:
+python3 gridpilot/scripts/raps_adapter/m100_calibration_check.py
+python3 gridpilot/scripts/raps_adapter/frontier_calibration_check.py
 ```
 
 Both emit JSON reporting the parsed geometry, per-node max power,

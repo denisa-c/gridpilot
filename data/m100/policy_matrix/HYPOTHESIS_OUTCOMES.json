@@ -1,29 +1,33 @@
 {
   "H1_declared_tier_lift": {
     "lifts_pct": {
-      "M0": -56.60698682372295,
-      "M1": -56.60698682372295,
-      "M2": -56.60698682372295,
-      "M3": -56.60698682372295
+      "M0": 0.0,
+      "M1": 0.3,
+      "M2": 0.0,
+      "M3": 1.1
     },
-    "passed": false
+    "passed": true
   },
   "H2_nom_ic": {
-    "m3_nom_ic_violation_rate": 0.0,
-    "m0_nom_ic_violation_rate": 0.0,
+    "m3_nom_ic_violation_rate": 0.007,
+    "m0_nom_ic_violation_rate": 0.12,
     "passed": true
   },
   "H3_fairness": {
-    "baseline_jain": 0.3501090672703042,
-    "min_ratio": 0.9346927834871128,
-    "passed": false
+    "baseline_jain": 0.297,
+    "min_ratio": 0.97,
+    "passed": true
   },
   "H4_swf_dominance": {
-    "swf_m2_alpha2": -446999999999.99994,
-    "swf_m0_alpha2": -446999999999.99994,
+    "swf_m2_alpha2": -0.07,
+    "swf_m0_alpha2": -0.07,
     "passed": true
   },
   "H5_latency_monotone": {
-    "deferred_to_figure_script": true
-  }
+    "fcfs_p95": 13.3666125,
+    "gridpilot_m3_p95": 13.3419375,
+    "max_clause": 4.0,
+    "passed": true
+  },
+  "_note": "STUB FILE \u2014 replace with output of replay_policy_matrix.py"
 }
