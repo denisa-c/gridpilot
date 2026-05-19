@@ -24,8 +24,8 @@
     "passed": true
   },
   "H5_latency_monotone": {
-    "fcfs_p95": 157.9583,
-    "gridpilot_m3_p95": 146.9774375,
+    "fcfs_p95": 11280.6333,
+    "gridpilot_m3_p95": 11280.6333,
     "max_clause": 4.0,
     "passed": true
   }

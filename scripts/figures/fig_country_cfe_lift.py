@@ -40,6 +40,7 @@ apply_style()
 
 
 CFE_LIFT_COL = "cfe_lift_pp_vs_none"   # overridden in main() based on CSV columns
+LIFT_LABEL   = "CFE lift (pp)"         # overridden in main() to match CFE_LIFT_COL
 COUNTRY_ORDER = ["SE", "CH", "FR", "IT", "DE", "PL"]
 COUNTRY_LABEL = {"SE": "SE\n11",  "CH": "CH\n30",  "FR": "FR\n53",
                   "IT": "IT\n258", "DE": "DE\n295", "PL": "PL\n612"}
@@ -237,7 +238,9 @@ def main(argv=None):
     #      0 % / 100 % dichotomy on the synthetic CI series.
     #   2. cfe_abs_lift_pp_vs_none  (absolute-CFE-pp lift)
     #   3. cfe_lift_pp_vs_none  (per-country-normalised, original)
-    global CFE_LIFT_COL
+    # LIFT_LABEL must be set globally too, because panel_a / panel_b
+    # read it as a module-level name to render their y-axis labels.
+    global CFE_LIFT_COL, LIFT_LABEL
     if "ci_weighted_lift_g" in df.columns:
         CFE_LIFT_COL = "ci_weighted_lift_g"
     elif "cfe_abs_lift_pp_vs_none" in df.columns:

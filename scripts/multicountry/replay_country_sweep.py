@@ -528,11 +528,6 @@ def main(argv=None) -> int:
               f"{cells_dir} already on disk; {len(to_run)} to run",
               flush=True)
 
-    def _exec(cell):
-        g, mw, layer, mech, s = cell
-        return run_one_cell(g, mw, layer, mech, s, jobs_df,
-                             cooling_params, scheduler_kwargs_base)
-
     def _persist(cid: str, row: dict) -> None:
         if args.no_cell_cache:
             return
@@ -551,12 +546,23 @@ def main(argv=None) -> int:
             if not args.quiet:
                 print(f"[country-sweep] {len(rows)+1}/{total}  {g.stem:<3} {mw:>4}MW "
                       f"{layer:<4} {mech:<14} seed={s}", flush=True)
-            row = _exec(cell)
+            row = run_one_cell(g, mw, layer, mech, s, jobs_df,
+                               cooling_params, scheduler_kwargs_base)
             _persist(cid, row)
             rows.append(row)
     else:
+        # NOTE: submit ``run_one_cell`` directly (NOT a nested closure)
+        # because ProcessPoolExecutor on macOS uses the ``spawn`` start
+        # method, which can only pickle module-level callables.  A
+        # local closure such as ``_exec`` triggers
+        #   PicklingError: Can't pickle local object 'main.<locals>._exec'
+        # at submit time.
         with ProcessPoolExecutor(max_workers=args.workers) as ex:
-            futs = {ex.submit(_exec, cell): (cid, cell) for cid, cell in to_run}
+            futs = {}
+            for cid, (g, mw, layer, mech, s) in to_run:
+                fut = ex.submit(run_one_cell, g, mw, layer, mech, s,
+                                jobs_df, cooling_params, scheduler_kwargs_base)
+                futs[fut] = (cid, (g, mw, layer, mech, s))
             for k, fut in enumerate(as_completed(futs)):
                 cid, (g, mw, layer, mech, s) = futs[fut]
                 row = fut.result()
