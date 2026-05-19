@@ -38,48 +38,175 @@ experiments_v2/
 ├── README.md            ← this file
 ├── METRICS.md           ← closed-form definitions of every metric
 ├── PROVENANCE.md        ← git SHA, env, M100 source hash, data dictionary
+├── AUDIT_FINDINGS.md    ← Phase-3 audit + v1 bugs surfaced + RAPS pivot history
+├── src/schedulers/      ← hand-rolled FCFS / EASY-FCFS / SAF / REPLAY
+│   │                     + shared accounting module
+│   ├── accounting.py    ← single source of truth for energy / CO₂ / CFE
+│   ├── fcfs.py          ← Mu'alem & Feitelson 2001 §2
+│   ├── easy_fcfs.py     ← Lifka 1995 §3 (bounded backfill, deque-based)
+│   ├── saf.py           ← Carastan-Santos & de Camargo 2019 §3
+│   └── replay.py        ← historical M100 dispatch
 ├── scripts/
 │   ├── 00_unit_audit.py            ← Phase 1: closed-form metric tests
 │   ├── 01_single_cell_smoketest.py ← Phase 2: end-to-end sign trace
-│   ├── 02_run_country_sweep.py     ← 1008 cells, both baselines
-│   ├── 03_run_tier_sweep.py        ← 864 cells, per-tier ablation
-│   ├── 04_run_hyper_sweep.py       ← 576 cells, hyperparameter sensitivity
-│   ├── 05_extract_macros.py        ← signed macros, no hardcoded prefix
-│   ├── 06_render_figures.py        ← v2 PDFs into figs/
-│   └── clean_rerun_all.sh          ← master orchestrator (this entry point)
+│   ├── 02_run_country_sweep.py     ← Phase 4a: 9 schedulers × 6 grids × 3 MW × 8 seeds
+│   ├── 03_run_tier_sweep.py        ← Phase 4b: per-tier ablation (T0..T5)
+│   ├── 04_run_hyper_sweep.py       ← Phase 4c: hyperparameter sensitivity
+│   ├── 04b_run_seasonal_sweep.py   ← Phase 4d: 4 seasons × CH/IT/DE, real CI
+│   ├── 05_extract_macros.py        ← Phase 5a: signed macros, no hardcoded prefix
+│   ├── 06_render_figures.py        ← Phase 5b: v2 PDFs into figs/
+│   ├── 07_render_seasonal_figure.py← Phase 5c: 2×2 fig_proact_1x4-style
+│   └── clean_rerun_all.sh          ← master orchestrator
+├── tests/
+│   └── test_schedulers.py          ← Phase 1b: per-scheduler unit tests
 ├── data/                ← all v2 CSVs + cell checkpoints land here
 │   ├── country_sweep/
 │   ├── tier_sweep/
-│   └── hyper_sweep/
+│   ├── hyper_sweep/
+│   └── seasonal_sweep/  ← 4 seasons × N countries, real ENTSO-E CI
 ├── figs/                ← rendered figure PDFs for the paper
 └── archived_v1_<UTC>/   ← frozen snapshot of v1 outputs at v2 start
 ```
 
 ## How to run
 
-From the repository root, on a 16-core / 64 GB workstation:
+### One-shot — every phase, fail-stop gating
 
 ```bash
 bash gridpilot/experiments_v2/scripts/clean_rerun_all.sh
 ```
 
-The orchestrator runs the eight numbered scripts in order with
-**fail-stop gating** between phases.  If `00_unit_audit.py` fails,
-nothing downstream runs.  If the single-cell smoketest detects a
-sign-convention drift, the sweeps don't start.  Total wall time on
-a clean workstation: ~90 min for the three sweeps (denser trace +
-real ENTSO-E CI is included on the critical path).
+The orchestrator runs the eight numbered scripts in order.  If
+`00_unit_audit.py` fails, nothing downstream runs.  If the single-
+cell smoketest detects sign-convention drift, the sweeps don't
+start.  Scripts that don't exist yet are clearly flagged with a
+`[SKIP] phase X — script not yet written` line; the orchestrator
+continues past them so you can run it at any stage of build-out.
 
-Required inputs:
+### Phase-by-phase (for fast iteration)
 
-- `gridpilot/data/traces/m100_real_jobs.parquet`  — bundled Jan 2022 trace
-- `gridpilot/data/m100_public/year_month=22-02/.../a_0.parquet`  — Feb 2022 SLURM subset (in-repo)
-- `$ENTSOE_API_KEY` exported — real ENTSO-E hourly CI fetch
+```bash
+# Phase 1 — closed-form metric tests (~1 s).  Must pass before anything else.
+PYTHONPATH=gridpilot/src python3 \
+    gridpilot/experiments_v2/scripts/00_unit_audit.py
 
-If `$ENTSOE_API_KEY` is not set, the orchestrator refuses to advance
-past the unit-audit phase and prints instructions for getting a token.
-Synthesised CI is **not** used for the v2 headline (the v1 work
-showed its dynamic range is too compressed to exercise the contract).
+# Phase 1b — per-scheduler sanity tests.  Reproduces:
+#   FCFS head-of-queue pathology (MF&F 2001), EASY-FCFS fix (Lifka 1995),
+#   SAF priority (Carastan-Santos 2019), REPLAY history, F3 truncation.
+PYTHONPATH=gridpilot/experiments_v2/src python3 \
+    gridpilot/experiments_v2/tests/test_schedulers.py
+
+# Phase 2 — single-cell smoketest on real M100 trace, three sub-cells,
+#          asserts sign convention end-to-end.
+PYTHONPATH=gridpilot/src:gridpilot/experiments_v2/src python3 \
+    gridpilot/experiments_v2/scripts/01_single_cell_smoketest.py
+
+# Phase 4a — country sweep (9 schedulers × 6 grids × 3 MW × 8 seeds).
+PYTHONPATH=gridpilot/src:gridpilot/experiments_v2/src python3 \
+    gridpilot/experiments_v2/scripts/02_run_country_sweep.py \
+        --workers 20 --max-jobs 20000
+
+# Phase 4b — per-tier ablation.
+PYTHONPATH=gridpilot/src:gridpilot/experiments_v2/src python3 \
+    gridpilot/experiments_v2/scripts/03_run_tier_sweep.py \
+        --workers 20 --max-jobs 20000
+
+# Phase 4c — hyperparameter sensitivity.
+PYTHONPATH=gridpilot/src:gridpilot/experiments_v2/src python3 \
+    gridpilot/experiments_v2/scripts/04_run_hyper_sweep.py \
+        --workers 20 --max-jobs 20000
+
+# Phase 4d — 4 representative days × CH/IT/DE.
+PYTHONPATH=gridpilot/src:gridpilot/experiments_v2/src python3 \
+    gridpilot/experiments_v2/scripts/04b_run_seasonal_sweep.py \
+        --workers 8
+
+# Phase 5a — extract LaTeX macros (signed format).
+PYTHONPATH=gridpilot/experiments_v2/src python3 \
+    gridpilot/experiments_v2/scripts/05_extract_macros.py \
+        --country-csv gridpilot/experiments_v2/data/country_sweep/country_sweep.csv \
+        --out         gridpilot/experiments_v2/figs/results.tex
+
+# Phase 5b — render the headline + ablation figures.
+PYTHONPATH=gridpilot/experiments_v2/src python3 \
+    gridpilot/experiments_v2/scripts/06_render_figures.py \
+        --country-csv  gridpilot/experiments_v2/data/country_sweep/country_sweep.csv \
+        --tier-summary gridpilot/experiments_v2/data/tier_sweep/TIER_SUMMARY.csv \
+        --hyper-summary gridpilot/experiments_v2/data/hyper_sweep/HYPER_SUMMARY.csv \
+        --out-dir gridpilot/experiments_v2/figs
+
+# Phase 5c — fig_proact_1x4-style 2×2 with seasonal sweep + ENTSO-E CI.
+PYTHONPATH=gridpilot/experiments_v2/src python3 \
+    gridpilot/experiments_v2/scripts/07_render_seasonal_figure.py \
+        --seasonal-csv gridpilot/experiments_v2/data/seasonal_sweep/seasonal_sweep.csv \
+        --out gridpilot/experiments_v2/figs/fig_proact_1x4_v2.pdf
+```
+
+### Progress visibility
+
+Every sweep driver (02–04b) renders a **tqdm progress bar** (with a
+no-tqdm fallback that prints a one-line counter) and writes a
+**per-cell wall-time** column (`_wall_s`) into each cell JSON, so a
+slow cell is identifiable in the cache directory.  Per-cell timeout
+defaults to 1 hour; cells that exceed it are skipped with `[ERROR]`
+rather than hanging the whole sweep.
+
+### Critical CLI flag — `--max-jobs N`
+
+The bundled extended trace
+(`gridpilot/data/traces/m100_real_jobs_extended.parquet`) has
+360 139 rows but a **broken submit-time span of ~1 hour** (the
+`build_extended_trace.py` column auto-detection mis-handles the
+Feb 2022 SLURM schema; see `AUDIT_FINDINGS.md` F-NEW-TRACE-TIMESPAN).
+Running schedulers against this trace as-is gives a "1-hour
+360k-job" replay that doesn't represent reality and is also
+catastrophically slow (queue saturated forever).
+
+**Workaround**: pass `--max-jobs 20000` (or smaller for fast
+iteration like `5000`).  The sweep uniform-random-samples the
+trace to N jobs with a fixed seed (20260519) for reproducibility.
+20 000 is the recommended ceiling for the headline; a smoketest
+fits in ~30 s at `--max-jobs 1000`.
+
+### Required inputs
+
+- `gridpilot/data/traces/m100_real_jobs_extended.parquet`  — built by
+  `gridpilot/scripts/m100/build_extended_trace.py` (Jan+Feb 2022).
+  Falls back to `m100_real_jobs.parquet` (Jan-only).
+- `gridpilot/raps/config/marconi100.yaml`  — RAPS PUE anchor; v2
+  falls back to a design-PUE calibration if the submodule isn't
+  initialised.
+- `gridpilot/configs/grids/{SE,CH,FR,IT,DE,PL}.yaml`  — per-country
+  CI series anchors (annual mean + diurnal/seasonal envelope).
+- *(optional)* `gridpilot/data/ci/entsoe/{COUNTRY}_hourly.parquet`
+  — real ENTSO-E A75 hourly CI from the `fetch_real_ci_series.py`
+  driver.  Currently only `SE_hourly.parquet` ships in the repo;
+  the seasonal-sweep figure falls back to synthesised CI for the
+  missing countries.
+
+### Sub-sample sizes — what to use for what
+
+| Use case            | `--max-jobs` | Workers | Wall time (~) |
+|---------------------|-------------|---------|---------------|
+| Smoketest (1 cell)  | 1 000       | 1       | ~5 s          |
+| Country sweep (one country, all schedulers) | 5 000 | 4 | ~1 min |
+| Country sweep (full 1296 cells) | 20 000 | 20 | ~15–30 min |
+| Tier sweep (full)   | 20 000      | 20      | ~10–20 min    |
+| Hyper sweep (full)  | 20 000      | 20      | ~8–15 min     |
+| Seasonal sweep      | n/a (small trace per day) | 8 | ~3–5 min |
+
+### Caveats
+
+- **`$ENTSOE_API_KEY` is *recommended* but not *required*** for any
+  individual script.  The orchestrator gates on it; individual
+  drivers fall back to the per-country YAML's synthesised diurnal
+  envelopes when ENTSO-E hourly data isn't present for that grid.
+- **`tqdm` is recommended** (`pip install tqdm`); the drivers fall
+  back to a one-line text counter without it.
+- **Per-cell timeout = 1 hour** (hard-coded).  If a cell exceeds it,
+  the driver logs `[ERROR] cell <id> failed: <reason>` and continues.
+  Workers do not hang — `concurrent.futures` cancels the future and
+  the worker process is recycled.
 
 ## What v2 changes vs v1
 
@@ -110,3 +237,68 @@ promotion path is:
 
 Until that promotion happens, **the paper builds from v2 paths**,
 and v1 is reference-only.
+
+## Seasonal sweep + fig_proact_1x4 (Phases 4d + 5c)
+
+The seasonal sweep evaluates the f-SLA contract against four
+representative 2025 dates (mid-Winter / Spring / Summer / Autumn) on
+CH, IT and DE, using **real ENTSO-E hourly CI** when a per-country
+parquet is present under `gridpilot/data/ci/entsoe/`, and falling
+back to the per-country YAML's synthesised diurnal envelope
+otherwise.  Currently only `SE_hourly.parquet` ships in the repo;
+fetch the rest with:
+
+```bash
+export ENTSOE_API_KEY=<token from https://transparency.entsoe.eu>
+PYTHONPATH=gridpilot/src python3 \
+    gridpilot/scripts/m100/fetch_real_ci_series.py \
+        --start 2025-01-01 --end 2026-01-01 \
+        --grids SE,CH,FR,IT,DE,PL \
+        --out-dir gridpilot/data/ci/entsoe/
+```
+
+Then run the seasonal sweep + render:
+
+```bash
+# 240-cell sweep (4 seasons × 3 countries × 5 schedulers × 4 seeds).
+# Wall time on a 16-core box: ~3–5 min.
+PYTHONPATH=gridpilot/src:gridpilot/experiments_v2/src python3 \
+    gridpilot/experiments_v2/scripts/04b_run_seasonal_sweep.py \
+        --workers 8
+
+# Render the 2×2 fig_proact_1x4-style figure with real data.
+PYTHONPATH=gridpilot/experiments_v2/src python3 \
+    gridpilot/experiments_v2/scripts/07_render_seasonal_figure.py \
+        --seasonal-csv gridpilot/experiments_v2/data/seasonal_sweep/seasonal_sweep.csv \
+        --out          gridpilot/experiments_v2/figs/fig_proact_1x4_v2.pdf
+```
+
+The output figure's panels (matching the reference layout):
+
+| Panel | Source | Data |
+|-------|--------|------|
+| (a) CFE adoption surface | analytical, no data needed | sigmoid contour over (penetration × adoption) with equilibrium Ω* |
+| (b) Savings by country and season | `SEASONAL_SUMMARY.csv` | net CO₂ reduction % of `fsla_M3` vs `fcfs` baseline within each (country, season) |
+| (c) Summer CI diurnal | ENTSO-E hourly if present, else per-country YAML synth | mean + std bands over ±3 d around the summer anchor |
+| (d) Pareto front | per-cell `(p95_slowdown, co2_reduction_vs_fcfs)` from all non-FCFS rows | dominated/non-dominated frontier; mean-slowdown vertical |
+
+Missing input → panel shows an `(awaiting <input>)` placeholder so
+the figure compiles end-to-end at any stage of build-out.
+
+## Trace timespan caveat — read before you trust the numbers
+
+`gridpilot/data/traces/m100_real_jobs_extended.parquet` has 360 139
+rows but a `submit_time_epoch` span of only ~1 hour (per the v2
+diagnostic).  This is a **bug in `build_extended_trace.py`**: the
+auto-detection of the Feb 2022 SLURM-sacct submit-time column
+mis-handles the schema and collapses the span.  Every v2 sweep
+driver has a `--max-jobs N` flag that uniform-random sub-samples
+the trace to N rows with a fixed seed (20260519) for
+reproducibility; use this until the trace bug is fixed.
+
+The fix lives at `gridpilot/scripts/m100/build_extended_trace.py`'s
+`_to_epoch_seconds` / `_normalise` helpers — likely a wrong column
+chosen via `SUBMIT_CANDS` (e.g., `accrue_time` instead of
+`submit_time`) and/or the heuristic in `_to_epoch_seconds`
+mis-classifying the unit scale.  Filed in `AUDIT_FINDINGS.md` as
+`F-NEW-TRACE-TIMESPAN`.

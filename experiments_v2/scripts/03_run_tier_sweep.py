@@ -61,12 +61,17 @@ sys.path.insert(0, str(ROOT / "gridpilot" / "experiments_v2" / "src"))
 # pylint: disable=wrong-import-position,import-error
 from replay_single_tier_sweep import (  # type: ignore[import-not-found]
     run_one_cell as v1_tier_cell,
+    NODE_POWER_KW,
 )
 from replay_country_sweep import _nodes_for_mw  # type: ignore[import-not-found]
 from inject_fsla_prior import load_pue_params   # type: ignore[import-not-found]
 from cooling.cooling_pue_model import (         # type: ignore[import-not-found]
     calibrate_to_design_pue,
 )
+
+# Canonical-CFE reference (Kamatar 2025; Google 24/7).  v1's tier_cell
+# returns ci_weighted_mean but not cfe_canonical_pct; we compute it here.
+CFE_REF_CI_G = 800.0
 
 GRIDPILOT = ROOT / "gridpilot"
 GRIDS_DIR = GRIDPILOT / "configs" / "grids"
@@ -109,16 +114,28 @@ def _load_cached(cell_path: Path):
     return None
 
 
+def _scheduler_kwargs_base() -> dict:
+    """v1's tier_cell needs node_power_kw + time_step.  Match v1's main()."""
+    return dict(node_power_kw=NODE_POWER_KW, time_step=3600)
+
+
 def _run(c, m, t, s, jobs_df, cooling_params):
     country_yaml = GRIDS_DIR / f"{c}.yaml"
     r = v1_tier_cell(country_yaml, float(m), int(t), int(s),
-                     jobs_df, cooling_params, {})
+                     jobs_df, cooling_params, _scheduler_kwargs_base())
+    ci_eff = float(r.get("ci_weighted_mean", 0.0))
+    cfe_canonical = (
+        max(0.0, min(100.0, 100.0 * (1.0 - ci_eff / CFE_REF_CI_G)))
+        if ci_eff > 0 else 0.0
+    )
     return {
         "country":  c, "mw": int(m), "tier": int(t),
         "seed":     int(s), "nodes": int(_nodes_for_mw(m)),
         "energy_kwh":        float(r.get("energy_kwh", 0.0)),
-        "ci_weighted_mean":  float(r.get("ci_weighted_mean", 0.0)),
-        "cfe_canonical_pct": float(r.get("cfe_canonical_pct", 0.0)),
+        "ci_weighted_mean":  ci_eff,
+        "cfe_canonical_pct": cfe_canonical,
+        "cfe_pct":           float(r.get("cfe_pct", 0.0)),
+        "cfe_abs_pct":       float(r.get("cfe_abs_pct", 0.0)),
         "co2_g_facility":    float(r.get("co2_g_facility", 0.0)),
         "p50_slowdown":      float(r.get("p50_slowdown", 1.0)),
         "p95_slowdown":      float(r.get("p95_slowdown", 1.0)),

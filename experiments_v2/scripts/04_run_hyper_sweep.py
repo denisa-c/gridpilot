@@ -4,18 +4,18 @@ experiments_v2/scripts/04_run_hyper_sweep.py
 =============================================
 Phase 4c — contract-hyperparameter sensitivity sweep.
 
-One-at-a-time sweep over four contract knobs around the default
-settings, with the headline M3 mechanism:
-    alpha_scale       (credit schedule scale)        : 0.5, 1.0, 2.0, 4.0
-    window_scale      (deferral window scale)        : 0.5, 1.0, 2.0
-    t4_envelope_scale (T4 replica envelope scale)    : 1.0, 2.0
-    short_job_s       (short-job exclusion, seconds) : 1, 60, 300
+One-at-a-time sweep over four contract knobs around DEFAULTS:
+    alpha_scale       : 0.5, 1.0, 2.0, 4.0
+    window_scale      : 0.5, 1.0, 2.0
+    t4_envelope_scale : 1.0, 2.0
+    short_job_s       : 1, 60, 300
 
-Cells: 12 hyperparam settings × 6 countries × 1 MW (10 MW) × 8 seeds = 576.
+Total cells: |countries| × Σ|values per hyper| × |seeds|.
+With 6 countries × 12 hyper-values × 8 seeds = 576 (default).
 
-Wraps v1's replay_hyperparameter_sweep.run_one_cell (which already
-implements the per-knob scaling) and adds the v2 per-cell JSON
-cache + manifest writer for resumability and provenance.
+Wraps v1's replay_hyperparameter_sweep.run_one_cell with the
+correct 8-positional-arg signature (the previous v2 wrapper had
+a wrong arg order — fixed in this version).
 
 Outputs:
   data/hyper_sweep/cells/<cell_id>.json
@@ -34,6 +34,7 @@ import time
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 try:
@@ -51,6 +52,7 @@ sys.path.insert(0, str(ROOT / "gridpilot" / "experiments_v2" / "src"))
 # pylint: disable=wrong-import-position,import-error
 from replay_hyperparameter_sweep import (  # type: ignore[import-not-found]
     run_one_cell as v1_hyper_cell,
+    SWEEP, DEFAULTS, NODE_POWER_KW,
 )
 from inject_fsla_prior import load_pue_params  # type: ignore[import-not-found]
 from cooling.cooling_pue_model import (        # type: ignore[import-not-found]
@@ -63,25 +65,19 @@ PUE_RAPS  = GRIDPILOT / "raps" / "config" / "marconi100.yaml"
 JOBS_EXT  = GRIDPILOT / "data" / "traces" / "m100_real_jobs_extended.parquet"
 JOBS_JAN  = GRIDPILOT / "data" / "traces" / "m100_real_jobs.parquet"
 
+# Canonical-CFE reference (Kamatar 2025; Google 24/7).  Used to
+# compute cfe_canonical_pct from v1's ci_weighted_mean field (v1
+# doesn't emit cfe_canonical_pct directly).
+CFE_REF_CI_G = 800.0
+
 DEFAULT_COUNTRIES = ["SE", "CH", "FR", "IT", "DE", "PL"]
 DEFAULT_MW = 10
 DEFAULT_SEEDS = 8
 
-# 12 hyperparameter settings: each tuple is one cell config (others at default).
-HYPER_GRID = [
-    # (label, alpha_scale, window_scale, t4_envelope_scale, short_job_s)
-    ("alpha_0.5",  0.5, 1.0, 1.0, 60),
-    ("alpha_1.0",  1.0, 1.0, 1.0, 60),  # the default reference
-    ("alpha_2.0",  2.0, 1.0, 1.0, 60),
-    ("alpha_4.0",  4.0, 1.0, 1.0, 60),
-    ("window_0.5", 1.0, 0.5, 1.0, 60),
-    ("window_2.0", 1.0, 2.0, 1.0, 60),
-    ("t4env_2.0",  1.0, 1.0, 2.0, 60),
-    ("short_1",    1.0, 1.0, 1.0, 1),
-    ("short_300",  1.0, 1.0, 1.0, 300),
-    ("window_5.0", 1.0, 5.0, 1.0, 60),
-    ("alpha_8.0",  8.0, 1.0, 1.0, 60),
-    ("short_3600", 1.0, 1.0, 1.0, 3600),
+# Build the (hyper, value) sweep list once at module load.  This is
+# v1's SWEEP dict flattened: each entry is a (hyper_name, value) pair.
+HYPER_VALUE_PAIRS: list[tuple[str, float]] = [
+    (h, v) for h, values in SWEEP.items() for v in values
 ]
 
 
@@ -91,8 +87,14 @@ def _resolve_cooling_params():
     return calibrate_to_design_pue(target_pue=1.20, it_design_kw=1400.0)
 
 
-def _cell_id(c, label, mw, s):
-    return f"{c}_{label}_{mw:03d}MW_seed{s}"
+def _scheduler_kwargs_base() -> dict:
+    """v1's run_one_cell expects node_power_kw + time_step in the
+    base kwargs.  Match v1's main()."""
+    return dict(node_power_kw=NODE_POWER_KW, time_step=3600)
+
+
+def _cell_id(c, hyper, value, s):
+    return f"{c}_{hyper}_{value}_seed{s}"
 
 
 def _persist(cp, row):
@@ -107,33 +109,38 @@ def _load_cached(cp):
         return None
     try:
         r = json.loads(cp.read_text())
-        if "cfe_canonical_pct" in r and "hyper_label" in r:
+        if {"country", "hyper", "value", "seed", "cfe_canonical_pct"}.issubset(r):
             return r
     except Exception:
         pass
     return None
 
 
-def _run(c, label, alpha_scale, window_scale, t4_env, short_s, mw, seed,
-         jobs_df, cooling_params):
+def _run(c, hyper, value, seed, mw, jobs_df, cooling_params):
+    """Call v1 with the correct 8-positional-arg signature, then
+    augment the row with cfe_canonical_pct (which v1 doesn't emit)."""
     country_yaml = GRIDS_DIR / f"{c}.yaml"
     r = v1_hyper_cell(
-        country_yaml, float(mw), int(seed), jobs_df, cooling_params,
-        alpha_scale=alpha_scale, window_scale=window_scale,
-        t4_envelope_scale=t4_env, short_job_s=short_s,
+        country_yaml, float(mw), str(hyper), float(value), int(seed),
+        jobs_df, cooling_params, _scheduler_kwargs_base(),
+    )
+    # Derive canonical CFE from the energy-weighted mean CI v1 returns.
+    ci_eff = float(r.get("ci_weighted_mean", 0.0))
+    cfe_canonical = (
+        max(0.0, min(100.0, 100.0 * (1.0 - ci_eff / CFE_REF_CI_G)))
+        if ci_eff > 0 else 0.0
     )
     return {
         "country":  c, "mw": int(mw), "seed": int(seed),
-        "hyper_label": label,
-        "alpha_scale": float(alpha_scale),
-        "window_scale": float(window_scale),
-        "t4_envelope_scale": float(t4_env),
-        "short_job_s": int(short_s),
+        "hyper":    str(hyper),
+        "value":    float(value),
         "energy_kwh":        float(r.get("energy_kwh", 0.0)),
-        "ci_weighted_mean":  float(r.get("ci_weighted_mean", 0.0)),
-        "cfe_canonical_pct": float(r.get("cfe_canonical_pct", 0.0)),
-        "co2_g_facility":    float(r.get("co2_g_facility", 0.0)),
+        "ci_weighted_mean":  ci_eff,
+        "cfe_canonical_pct": cfe_canonical,
+        "cfe_pct":           float(r.get("cfe_pct", 0.0)),
+        "cfe_abs_pct":       float(r.get("cfe_abs_pct", 0.0)),
         "p95_slowdown":      float(r.get("p95_slowdown", 1.0)),
+        "n_jobs":            int(r.get("n_jobs", 0)),
     }
 
 
@@ -151,7 +158,7 @@ def main(argv=None) -> int:
                     help="sub-sample the trace to at most this many jobs")
     args = p.parse_args(argv)
 
-    countries = [c.strip() for c in args.countries.split(",")]
+    countries = [c.strip() for c in args.countries.split(",") if c.strip()]
     args.output_dir.mkdir(parents=True, exist_ok=True)
     cells_dir = args.output_dir / "cells"
     cells_dir.mkdir(exist_ok=True)
@@ -160,26 +167,28 @@ def main(argv=None) -> int:
     if not jobs_path.exists():
         print(f"ABORT: jobs trace not found at {jobs_path}", file=sys.stderr)
         return 2
+    print(f"[04-hyper-sweep] trace: {jobs_path}")
     jobs_df = pd.read_parquet(jobs_path)
+    print(f"[04-hyper-sweep] loaded {len(jobs_df)} jobs")
+
     if args.max_jobs is not None and len(jobs_df) > args.max_jobs:
-        import numpy as _np
-        rng = _np.random.default_rng(20260519)
+        rng = np.random.default_rng(20260519)
         idx = rng.choice(len(jobs_df), size=args.max_jobs, replace=False)
         jobs_df = jobs_df.iloc[sorted(idx)].reset_index(drop=True)
         print(f"[04-hyper-sweep] sub-sampled to {len(jobs_df)} jobs")
+
     cooling_params = _resolve_cooling_params()
 
     cells = [
-        (c, label, alpha_s, win_s, t4, short_s, args.mw, s)
+        (c, hyper, value, seed)
         for c in countries
-        for (label, alpha_s, win_s, t4, short_s) in HYPER_GRID
-        for s in range(args.seeds)
+        for (hyper, value) in HYPER_VALUE_PAIRS
+        for seed in range(args.seeds)
     ]
     to_run = []
     rows: list[dict] = []
     for cell in cells:
-        c, label, *_, s = cell
-        cid = _cell_id(c, label, args.mw, s)
+        cid = _cell_id(*cell)
         cp = cells_dir / f"{cid}.json"
         if not args.no_cache:
             r = _load_cached(cp)
@@ -199,14 +208,16 @@ def main(argv=None) -> int:
         if bar is not None: bar.update(1)
 
     if args.workers <= 1:
-        for k, (cid, cell) in enumerate(to_run):
-            row = _run(*cell, jobs_df, cooling_params)
+        for cid, cell in to_run:
+            row = _run(*cell, args.mw, jobs_df, cooling_params)
             _persist(cells_dir / f"{cid}.json", row)
             rows.append(row); _tick()
     else:
         with ProcessPoolExecutor(max_workers=args.workers) as ex:
-            futs = {ex.submit(_run, *cell, jobs_df, cooling_params): (cid, cell)
-                    for cid, cell in to_run}
+            futs = {
+                ex.submit(_run, *cell, args.mw, jobs_df, cooling_params): (cid, cell)
+                for cid, cell in to_run
+            }
             for fut in as_completed(futs):
                 cid, _ = futs[fut]
                 try:
@@ -218,15 +229,29 @@ def main(argv=None) -> int:
                 rows.append(row); _tick()
     if bar is not None: bar.close()
 
+    if not rows:
+        print("[04-hyper-sweep] WARN: no rows produced; nothing to summarise.")
+        return 3
+
     df = pd.DataFrame(rows).sort_values(
-        ["country", "hyper_label", "seed"], kind="stable")
+        ["country", "hyper", "value", "seed"], kind="stable")
     csv_path = args.output_dir / "hyper_sweep.csv"
     df.to_csv(csv_path, index=False, float_format="%.4f")
     print(f"[04-hyper-sweep] wrote {csv_path}")
 
     metric_cols = ["energy_kwh", "ci_weighted_mean", "cfe_canonical_pct",
-                   "co2_g_facility", "p95_slowdown"]
-    summary = df.groupby(["hyper_label"], as_index=False)[metric_cols].mean()
+                   "cfe_pct", "cfe_abs_pct", "p95_slowdown"]
+    summary = df.groupby(["hyper", "value"],
+                          as_index=False)[metric_cols].mean()
+    # Add a default-reference column for delta-vs-default convenience.
+    for h, default_v in DEFAULTS.items():
+        ref = summary[(summary["hyper"] == h) & (summary["value"] == float(default_v))]
+        if not ref.empty:
+            ref_cfe = float(ref.iloc[0]["cfe_canonical_pct"])
+            mask = summary["hyper"] == h
+            summary.loc[mask, f"d_cfe_vs_default_pp"] = (
+                summary.loc[mask, "cfe_canonical_pct"] - ref_cfe
+            )
     summary_path = args.output_dir / "HYPER_SUMMARY.csv"
     summary.to_csv(summary_path, index=False, float_format="%.4f")
     print(f"[04-hyper-sweep] wrote {summary_path}")
@@ -239,11 +264,12 @@ def main(argv=None) -> int:
         "python": platform.python_version(), "host": platform.node(),
         "argv": sys.argv, "n_cells": len(rows),
         "trace": str(jobs_path), "countries": countries, "mw": args.mw,
-        "hyper_grid": [list(t) for t in HYPER_GRID],
+        "hyper_sweep": {k: list(v) for k, v in SWEEP.items()},
+        "defaults": DEFAULTS,
         "seeds": args.seeds,
         "wall_seconds": int(time.time() - t0),
     }, indent=2, default=str))
-    print(f"[04-hyper-sweep] done.")
+    print(f"[04-hyper-sweep] done in {int(time.time() - t0)} s")
     return 0
 
 

@@ -34,7 +34,11 @@
 #     SKIP_GATES=1     skip Phases 1 and 1b (fast iteration on Phase 2+)
 #     SKIP_SWEEPS=1    run only the gates (Phases 1, 1b, 2); useful in CI
 #     FRESH=1          wipe experiments_v2/data/*/cells/ before starting
-#     WORKERS=<n>      pool size for the three sweep drivers (default 4)
+#     WORKERS=<n>      pool size for the sweep drivers (default 4)
+#     MAX_JOBS=<n>     sub-sample the trace per sweep (default 20000;
+#                      essential because the bundled extended trace has
+#                      360k rows in a ~1h compressed span — see
+#                      AUDIT_FINDINGS.md F-NEW-TRACE-TIMESPAN)
 #     ENTSOE_API_KEY   exported  → real ENTSO-E CI on (recommended for v2)
 #     ALLOW_SYNTH_CI=1 permit synthetic CI fallback if no API key
 #
@@ -65,12 +69,15 @@ mkdir -p "${LOG_DIR}"
 LOG_FILE="${LOG_DIR}/v2_clean_rerun_${STAMP}.log"
 exec > >(tee -a "${LOG_FILE}") 2>&1
 
+MAX_JOBS_DEFAULT="${MAX_JOBS:-20000}"
+
 echo "======================================================================"
 echo "experiments_v2 clean rerun"
 echo "  start_utc  : ${STAMP}"
 echo "  v2 root    : ${V2_ROOT}"
 echo "  python     : ${PYTHON}"
 echo "  workers    : ${WORKERS:-4}"
+echo "  max-jobs   : ${MAX_JOBS_DEFAULT}   (per-sweep trace sub-sample)"
 echo "  fresh      : ${FRESH:-0}"
 echo "  skip_gates : ${SKIP_GATES:-0}"
 echo "  skip_sweeps: ${SKIP_SWEEPS:-0}"
@@ -206,12 +213,13 @@ fi
 # orchestrator continues.  This lets the user run the orchestrator at
 # any stage of v2 build-out and see exactly what's done vs pending.
 
-_phase_banner "Phase 4a — country sweep (1008 cells, all baselines + M3)"
+_phase_banner "Phase 4a — country sweep (all baselines + M3 across all 6 countries)"
 if [[ -f "${V2_ROOT}/scripts/02_run_country_sweep.py" ]]; then
     PYTHONPATH="${GRIDPILOT_ROOT}/src:${V2_ROOT}/src" \
         "${PYTHON}" "${V2_ROOT}/scripts/02_run_country_sweep.py" \
             --output-dir "${V2_ROOT}/data/country_sweep" \
             --workers    "${WORKERS:-4}" \
+            --max-jobs   "${MAX_JOBS_DEFAULT}" \
         || { echo "Phase 4a FAIL"; exit 4; }
     N_RAN=$((N_RAN + 1))
 else
@@ -221,12 +229,13 @@ else
     N_SKIPPED=$((N_SKIPPED + 1))
 fi
 
-_phase_banner "Phase 4b — per-tier sweep (864 cells)"
+_phase_banner "Phase 4b — per-tier sweep (T0..T5, 6 countries)"
 if [[ -f "${V2_ROOT}/scripts/03_run_tier_sweep.py" ]]; then
     PYTHONPATH="${GRIDPILOT_ROOT}/src:${V2_ROOT}/src" \
         "${PYTHON}" "${V2_ROOT}/scripts/03_run_tier_sweep.py" \
             --output-dir "${V2_ROOT}/data/tier_sweep" \
             --workers    "${WORKERS:-4}" \
+            --max-jobs   "${MAX_JOBS_DEFAULT}" \
         || { echo "Phase 4b FAIL"; exit 4; }
     N_RAN=$((N_RAN + 1))
 else
@@ -236,18 +245,34 @@ else
     N_SKIPPED=$((N_SKIPPED + 1))
 fi
 
-_phase_banner "Phase 4c — hyperparameter sweep (576 cells)"
+_phase_banner "Phase 4c — hyperparameter sweep (one-at-a-time, 6 countries)"
 if [[ -f "${V2_ROOT}/scripts/04_run_hyper_sweep.py" ]]; then
     PYTHONPATH="${GRIDPILOT_ROOT}/src:${V2_ROOT}/src" \
         "${PYTHON}" "${V2_ROOT}/scripts/04_run_hyper_sweep.py" \
             --output-dir "${V2_ROOT}/data/hyper_sweep" \
             --workers    "${WORKERS:-4}" \
+            --max-jobs   "${MAX_JOBS_DEFAULT}" \
         || { echo "Phase 4c FAIL"; exit 4; }
     N_RAN=$((N_RAN + 1))
 else
     _missing_script "Phase 4c — hyperparameter sweep" \
         "${V2_ROOT}/scripts/04_run_hyper_sweep.py" \
         "port v1 replay_hyperparameter_sweep.py through v2 schedulers + accounting"
+    N_SKIPPED=$((N_SKIPPED + 1))
+fi
+
+_phase_banner "Phase 4d — seasonal sweep (4 dates × CH/IT/DE, real ENTSO-E where present)"
+if [[ -f "${V2_ROOT}/scripts/04b_run_seasonal_sweep.py" ]]; then
+    PYTHONPATH="${GRIDPILOT_ROOT}/src:${V2_ROOT}/src" \
+        "${PYTHON}" "${V2_ROOT}/scripts/04b_run_seasonal_sweep.py" \
+            --output-dir "${V2_ROOT}/data/seasonal_sweep" \
+            --workers    "${WORKERS:-4}" \
+        || { echo "Phase 4d FAIL"; exit 4; }
+    N_RAN=$((N_RAN + 1))
+else
+    _missing_script "Phase 4d — seasonal sweep" \
+        "${V2_ROOT}/scripts/04b_run_seasonal_sweep.py" \
+        "4 representative days × CH/IT/DE × {baselines, M3} × seeds"
     N_SKIPPED=$((N_SKIPPED + 1))
 fi
 
@@ -281,6 +306,21 @@ else
     _missing_script "Phase 5b — render figures" \
         "${V2_ROOT}/scripts/06_render_figures.py" \
         "port v1 figure pipeline (fig_country_cfe_lift, fig_tier_and_hyper) to v2"
+    N_SKIPPED=$((N_SKIPPED + 1))
+fi
+
+_phase_banner "Phase 5c — render fig_proact_1x4-style seasonal figure"
+if [[ -f "${V2_ROOT}/scripts/07_render_seasonal_figure.py" ]]; then
+    PYTHONPATH="${V2_ROOT}/src" \
+        "${PYTHON}" "${V2_ROOT}/scripts/07_render_seasonal_figure.py" \
+            --seasonal-csv "${V2_ROOT}/data/seasonal_sweep/seasonal_sweep.csv" \
+            --out          "${V2_ROOT}/figs/fig_proact_1x4_v2.pdf" \
+        || { echo "Phase 5c FAIL"; exit 5; }
+    N_RAN=$((N_RAN + 1))
+else
+    _missing_script "Phase 5c — fig_proact_1x4 v2" \
+        "${V2_ROOT}/scripts/07_render_seasonal_figure.py" \
+        "2x2 fig_proact_1x4-style figure (CFE surface, seasonal bars, CI diurnal, Pareto)"
     N_SKIPPED=$((N_SKIPPED + 1))
 fi
 
