@@ -60,7 +60,7 @@ from .accounting import (
     CFE_REF_CI_G,
     P_NODE_KW,
 )
-from . import fcfs, easy_fcfs, saf, replay
+from . import fcfs, easy_fcfs, saf, replay, fsla_carbon_aware
 
 __all__ = [
     "ScheduledJob",
@@ -73,4 +73,5 @@ __all__ = [
     "easy_fcfs",
     "saf",
     "replay",
+    "fsla_carbon_aware",
 ]

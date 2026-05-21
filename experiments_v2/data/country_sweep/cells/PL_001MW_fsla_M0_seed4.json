@@ -1,1 +1,0 @@
-{"country": "PL", "mw": 1, "layer": "fsla_M0", "seed": 4, "nodes": 667, "n_completed": NaN, "n_truncated": NaN, "energy_kwh": 866.8524999995706, "ci_weighted_mean": 647.5140735101469, "cfe_canonical_pct": 19.060740811231636, "co2_g_it": 544542.0764081143, "co2_g_facility": 645868.9258898044, "v1_n_jobs": 20000, "source": "v1_fsla_dispatcher", "_wall_s": 2.1457672119140625e-06}

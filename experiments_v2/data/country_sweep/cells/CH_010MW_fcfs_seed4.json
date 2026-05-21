@@ -1,1 +1,0 @@
-{"country": "CH", "mw": 10, "layer": "fcfs", "seed": 4, "nodes": 6667, "n_completed": 20000, "n_truncated": 0, "energy_kwh": 2392.492500002609, "ci_weighted_mean": 33.30127654531108, "cfe_canonical_pct": 95.83734043183611, "co2_g_it": 79673.05437516957, "co2_g_facility": 95607.66525042104, "source": "v2_scheduler", "_wall_s": 2.86102294921875e-06}

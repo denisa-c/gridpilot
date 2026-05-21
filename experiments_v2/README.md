@@ -195,6 +195,50 @@ fits in ~30 s at `--max-jobs 1000`.
 | Hyper sweep (full)  | 20 000      | 20      | ~8–15 min     |
 | Seasonal sweep      | n/a (small trace per day) | 8 | ~3–5 min |
 
+### Run against the bundled Jan-only trace (no `--max-jobs` needed)
+
+The bundled `data/traces/m100_real_jobs.parquet` is a **real 28-day
+timespan** with 1 994 jobs (Jan 2022) and is **not affected by the
+`build_extended_trace` timespan-collapse bug** that blights the
+extended trace.  It is therefore the cleanest input for a paper
+result — every job has its actual submit time, the dispatcher sees
+a real diurnal CI signal, and the deferral windows actually bite.
+
+All v2 sweep drivers auto-detect the legacy `submit_time` column
+and rename it to `submit_time_epoch` on load.  No preprocessing
+needed.
+
+End-to-end orchestrator run against the Jan-only trace:
+
+```bash
+JOBS_TRACE="$PWD/gridpilot/data/traces/m100_real_jobs.parquet" \
+WORKERS=20 \
+FRESH=1 \
+bash gridpilot/experiments_v2/scripts/clean_rerun_all.sh
+```
+
+Per-script invocation (if you want to run one phase only):
+
+```bash
+PYTHONPATH=gridpilot/src:gridpilot/experiments_v2/src python3 \
+    gridpilot/experiments_v2/scripts/02_run_country_sweep.py \
+        --jobs gridpilot/data/traces/m100_real_jobs.parquet \
+        --workers 20
+```
+
+### Linear vs log axis variants
+
+The orchestrator now emits **two** copies of the seasonal figure:
+
+- `figs/fig_proact_1x4_v2_linear.pdf` — linear y on panel (c), linear x
+  on panel (d).  Easier to read at a glance; the v2 default.
+- `figs/fig_proact_1x4_v2_log.pdf` — log scales, matching the v1
+  reference figure's convention.  Useful when CH (low CI) and DE
+  (high CI) need to be compared on the same axes.
+
+Pass `--log` to `07_render_seasonal_figure.py` to render the log
+variant directly.
+
 ### Caveats
 
 - **`$ENTSOE_API_KEY` is *recommended* but not *required*** for any

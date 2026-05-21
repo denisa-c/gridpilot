@@ -6,7 +6,7 @@
 # Marconi100 ExaMon dump into the in-repo public subset, so the kit
 # can be cloned and rerun *without* the 100s-of-GB raw archive.
 #
-# Source (default): /Users/nisa/code/M100      (override with $1)
+# Source (default): $M100_RAW_PATH env var, or pass as first arg
 # Destination     : gridpilot/data/m100_public/
 #
 # What gets copied:
@@ -45,7 +45,7 @@ set -euo pipefail
 # ---- 1. Resolve paths -----------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GRIDPILOT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-SRC_ROOT="${1:-/Users/nisa/code/M100}"
+SRC_ROOT="${1:-${M100_RAW_PATH:-}}"
 DST_ROOT="${GRIDPILOT_ROOT}/data/m100_public"
 
 SUBPATH="year_month=22-02/plugin=job_table/metric=job_info_marconi100/a_0.parquet"

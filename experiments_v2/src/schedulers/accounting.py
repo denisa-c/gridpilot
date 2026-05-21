@@ -171,41 +171,61 @@ def run_metrics(
         n_truncated                (int)
         energy_kwh                 (float, IT only, per-job sum)
         ci_weighted_mean           (float, g CO2eq/kWh)
-        cfe_canonical_pct          (float, [0, 100])
+        cfe_pct                    (float, [0, 100], canonical Google /
+                                    24x7 CFE formula:
+                                    sum(E * X) / sum(E) * 100 where X is
+                                    the grid's carbon-free generation
+                                    fraction at the job's start hour;
+                                    falls back to the 1 - CI/800 proxy
+                                    when ci_df has no carbon_free_fraction
+                                    column.)
+        cfe_canonical_pct          (float, alias of cfe_pct; kept for
+                                    downstream compatibility)
         co2_g_it                   (float, g CO2eq)
         co2_g_facility             (float, g CO2eq, PUE-multiplied)
 
-    The function is *pure*: same inputs → same outputs, no side
+    The function is *pure*: same inputs -> same outputs, no side
     effects, no global state.  This is the contract every v2
     scheduler relies on.
     """
     ci_series = ci_df["carbon_intensity_gCO2eq_per_kWh"]
+    # Canonical CFE numerator: per-hour carbon-free generation share.
+    # When the parquet doesn't carry it (legacy fetcher), derive a
+    # proxy column on the fly from CI / 800; this keeps run_metrics
+    # backwards-compatible for callers built before the fetcher gained
+    # the column.
+    if "carbon_free_fraction" in ci_df.columns:
+        cfe_series = ci_df["carbon_free_fraction"].clip(0.0, 1.0)
+    else:
+        cfe_series = (1.0 - ci_series / cfe_ref_ci_g).clip(lower=0.0, upper=1.0)
 
     n_completed = len(schedule.completed_within_window)
     n_truncated = len(schedule.truncated_at_window)
 
     if n_completed == 0:
-        # Defined zero values when no completions; matches the v1
-        # convention so downstream Δ computations don't NaN.
         return {
             "n_completed_within_window": 0,
             "n_truncated":                n_truncated,
             "energy_kwh":                 0.0,
             "ci_weighted_mean":           0.0,
+            "cfe_pct":                    0.0,
             "cfe_canonical_pct":          0.0,
             "co2_g_it":                   0.0,
             "co2_g_facility":             0.0,
         }
 
-    total_energy_kwh = 0.0
+    total_energy_kwh        = 0.0
     total_ci_weighted_g_kwh = 0.0   # numerator of CI-weighted mean
-    total_co2_g_it = 0.0
-    total_co2_g_facility = 0.0
+    total_cfe_weighted_kwh  = 0.0   # numerator of canonical CFE%
+    total_co2_g_it          = 0.0
+    total_co2_g_facility    = 0.0
 
     for job in schedule.completed_within_window:
-        ci_at_start = _ts_lookup(ci_series, job.start_epoch)
+        ci_at_start  = _ts_lookup(ci_series,  job.start_epoch)
+        cfe_at_start = _ts_lookup(cfe_series, job.start_epoch)
         pue_at_start = (
-            _ts_lookup(pue_curve, job.start_epoch) if pue_curve is not None else 1.0
+            _ts_lookup(pue_curve, job.start_epoch)
+            if pue_curve is not None else 1.0
         )
 
         # Per-job IT energy (kWh).  Replicas scale the IT-side draw
@@ -216,22 +236,29 @@ def run_metrics(
 
         total_energy_kwh         += energy_kwh
         total_ci_weighted_g_kwh  += ci_at_start * energy_kwh
+        total_cfe_weighted_kwh   += cfe_at_start * energy_kwh
         total_co2_g_it           += ci_at_start * energy_kwh
         total_co2_g_facility     += ci_at_start * energy_kwh * pue_at_start
 
     ci_weighted_mean = (
-        total_ci_weighted_g_kwh / total_energy_kwh if total_energy_kwh > 0 else 0.0
+        total_ci_weighted_g_kwh / total_energy_kwh
+        if total_energy_kwh > 0 else 0.0
     )
-    cfe_canonical_pct = float(
-        np.clip(100.0 * (1.0 - ci_weighted_mean / cfe_ref_ci_g), 0.0, 100.0)
-    )
+    # Canonical 24/7 CFE: share of consumed energy supplied by carbon-
+    # free generation in the same hour as consumption.  Equivalent to
+    # the formula at https://cloud.google.com/sustainability/carbon-free
+    cfe_pct = float(np.clip(
+        100.0 * total_cfe_weighted_kwh / max(total_energy_kwh, 1e-12),
+        0.0, 100.0,
+    ))
 
     return {
         "n_completed_within_window": n_completed,
         "n_truncated":                n_truncated,
         "energy_kwh":                 float(total_energy_kwh),
         "ci_weighted_mean":           float(ci_weighted_mean),
-        "cfe_canonical_pct":          float(cfe_canonical_pct),
+        "cfe_pct":                    cfe_pct,
+        "cfe_canonical_pct":          cfe_pct,
         "co2_g_it":                   float(total_co2_g_it),
         "co2_g_facility":             float(total_co2_g_facility),
     }

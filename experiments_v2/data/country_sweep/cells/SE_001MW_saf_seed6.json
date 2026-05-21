@@ -1,1 +1,0 @@
-{"country": "SE", "mw": 1, "layer": "saf", "seed": 6, "nodes": 667, "n_completed": 20000, "n_truncated": 0, "energy_kwh": 259.4720833334195, "ci_weighted_mean": 12.149213774376303, "cfe_canonical_pct": 98.48134827820296, "co2_g_it": 3152.3818089004963, "co2_g_facility": 3782.8581706805526, "source": "v2_scheduler", "_wall_s": 2.86102294921875e-06}

@@ -50,6 +50,12 @@ import pandas as pd
 
 from .accounting import ScheduleResult, from_dispatch_log
 
+# Module-level flag: suppresses the "degenerate REPLAY" warning after
+# the first call in this process.  ProcessPoolExecutor spawns workers
+# with fresh module state, so each worker prints once — N_workers
+# lines total instead of N_cells lines.
+_DEGENERATE_REPLAY_WARNED = False
+
 
 def run(
     jobs_df: pd.DataFrame,
@@ -78,10 +84,17 @@ def run(
         start_epochs = (s.astype("int64") // 10**9).to_numpy(dtype=float)
     else:
         # Degenerate fallback: dispatch at submit time.  Documented in
-        # the docstring; surfaces an informational message so the
-        # caller knows this isn't a true REPLAY of historical dispatch.
-        print(f"[replay] WARN: no '{start_col}' or 'start_time' column; "
-              f"falling back to submit_time (degenerate REPLAY)")
+        # the docstring.  Warn only ONCE per process to avoid spamming
+        # ~hundreds of identical lines across worker pool calls.
+        global _DEGENERATE_REPLAY_WARNED
+        if not _DEGENERATE_REPLAY_WARNED:
+            print(f"[replay] WARN: no '{start_col}' or 'start_time' column "
+                  f"in trace; falling back to submit_time "
+                  f"(degenerate REPLAY = FCFS-no-contention).  "
+                  f"This warning is suppressed for subsequent calls in "
+                  f"this process.  To fix, ensure build_extended_trace.py "
+                  f"preserves the historical start_time column.")
+            _DEGENERATE_REPLAY_WARNED = True
         start_epochs = pd.to_numeric(jobs_df[submit_col], errors="coerce").to_numpy()
 
     runtimes  = pd.to_numeric(jobs_df[runtime_col], errors="coerce").to_numpy()

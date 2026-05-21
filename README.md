@@ -1,313 +1,225 @@
-# GridPilot — Grid-Responsive Control for AI Supercomputers (Euro-Par 2026)
+# GridPilot — Grid-Responsive Control for AI Supercomputers
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Data: CC-BY 4.0](https://img.shields.io/badge/Data-CC--BY%204.0-lightblue.svg)](licenses/CC-BY-4.0.txt)
 
-**Open reproducibility kit for two companion Euro-Par 2026 Workshop
-papers** on flexible, grid-responsive AI/HPC supercomputers — one
-on the upstream user-side contract (PECS), one on the downstream
-sub-second actuation controller (WHPC).
+Open reproducibility kit for the two companion Euro-Par 2026 Workshop papers on flexible, grid-responsive AI/HPC supercomputers — one on the upstream user-side contract (PECS 2026), one on the downstream sub-second actuation controller (WHPC 2026). The kit also exposes a broader toolset for grid-services research beyond the published headlines (Tier-2 utilities in `docs/RELEASE_CONTENTS.md`).
 
-## What this repository covers
+## What this kit is
 
-GridPilot is the *downstream actuation layer*: a three-tier predictive
-controller (per-GPU at 200 Hz, per-host at 1 Hz, per-cluster hourly)
-plus an out-of-band safety-island bypass, validated on a real 3× NVIDIA
-V100 SXM2 testbed.  It is paired with the *upstream contract*
-(f-SLA): a five-tier ladder (T0 rigid, T1 hour, T2 day, T3 week, T4
-elastic burst) under which job submitters declare deferrability and
-elasticity in exchange for proportional service credits, evaluated on
-the Marconi100 (M100) production trace against six European grids.
+GridPilot is two complementary layers that compose vertically:
 
-The two papers are:
+- **Downstream actuation (WHPC 2026):** a three-tier predictive controller (per-GPU at 200 Hz, per-host at 1 Hz, per-cluster hourly) plus an out-of-band safety-island bypass, validated on a real 3× NVIDIA V100 SXM2 testbed. Median end-to-end Fast-Frequency-Reserve response is ≈ 97 ms (max ≤ 102 ms across 90 trials), ~7× faster than the 700 ms Nordic FFR budget. A four-component instantaneous PUE correction reconciles the IT-side commitment with the facility-meter settlement, closing 2.5–5.8 pp of cooling-overhead drag across six European grids.
+- **Upstream contract (PECS 2026):** the *f-SLA* — a six-tier ladder (T0 rigid, T1 hour, T2 day, T3 week, T4 elastic burst, T5 spatial) under which job submitters declare deferrability, elasticity, and spatial flexibility in exchange for proportional service credits. Four anti-gaming mechanisms M0–M3 are evaluated for non-obvious manipulability against a synthetic-user prior. The headline replay is on the Marconi100 (M100) production trace against six European grids (SE, CH, FR, IT, DE, PL) using ENTSO-E hourly carbon intensity.
 
-| Paper | Folder | Focus |
-|---|---|---|
-| WHPC 2026 | `papers/whpc2026/` | GridPilot controller (attributed) |
-| PECS 2026 | `papers/pecs2026/` | f-SLA contract (double-blind) |
+The two layers compose vertically: user-side declarations elicit flexibility, the controller dispatches it deterministically at the facility meter. GridPilot also positions as the grid-facing layer of the emerging HPC PowerStack, composing with in-cluster power managers (PowerSched, EAR, GEOPM) through the REGALE DDS bus and aligning with the EuroHPC JU SEANERGYS reference architecture.
 
-Together they form a cross-layer flexibility programme: user-side
-incentives elicit flexibility (PECS) that the platform-level
-controller can dispatch deterministically at the facility meter
-(WHPC).
+## Architecture at a glance
 
+### Upstream — f-SLA contract + carbon-aware scheduler (PECS 2026)
 
+The user-side path: job submitters declare a tier on a six-step flexibility ladder; an AI baseline shows the tier the system expects ("beat the AI to earn credit"); the f-SLA accounting layer logs *(predicted, declared, realised)* triples and maintains the credit/leaderboard ledger; the carbon-aware scheduler defers each job within its declared tier window to a low-CI hour (T4 instead scales replicas 0.5×–2× on the CI signal at constant makespan).
 
-## Headline results
+![f-SLA contract and carbon-aware scheduler architecture (PECS 2026): six-tier ladder, AI baseline, accounting layer, scheduler, electricity grid](figs/architecture_fsla.png)
 
-These are auto-extracted from on-disk experiment outputs into
-`papers/{whpc,pecs}2026/figs/results.tex` by
-`scripts/figures/extract_paper_macros.py` — there are no hard-coded
-numbers in the LaTeX body text.  The current real measurements are:
+### Downstream — three-tier controller + safety island (WHPC 2026)
 
-- **WHPC E7 (FFR latency on V100):** ~97 ms median end-to-end response
-  across 90 trials (max ≤ 102 ms), ~7× faster than the 700 ms Nordic
-  FFR budget.  90/90 trials pass.
-- **WHPC E1 (power-cap calibration):** best-efficiency operating point
-  $p_{\text{cap}}=150$ W, $f_{\text{sm}}=945$ MHz, within ±5 % on
-  iterations-per-joule across matmul / inference / bursty.  Per-workload
-  power model LOOCV MAE 3.45 %; 980-node scaling envelope matches the
-  published Marconi100 facility-power reference within +1.4 %.
-- **WHPC E3 (AR(4) predictor MAE):** ~4.7 W (inference), ~7.0 W (matmul),
-  ~19.7 W (bursty) on the V100 testbed.
-- **WHPC E8 (PUE-aware controller sweep):** 50 MW cooling-overhead drag
-  closed across six European grids is 2.5–5.8 pp; envelope is widest on
-  low-CI grids.
-- **PECS multi-country sweep:** the f-SLA contract measurably shifts
-  both CFE share and energy-weighted effective grid CI on the M100
-  trace; the relative lift is largest on the cleanest grids (SE, CH,
-  FR) and the largest absolute avoided tonnage is on the dirtiest
-  (PL, DE).  
+The facility-side path: a TSO frequency trigger drops into the out-of-band *safety island* (real-time-C bypass, GPU cap written directly), and in parallel cascades through the three software tiers — Tier 3 (hourly) cluster operating-point selector with cooling-overhead correction, Tier 2 (1 Hz) per-host coordinator with AR(4) prediction, Tier 1 (200 Hz) per-GPU PID over NVML. Power settles within ~20 ms at the GPU and the facility meter reflects it ~90 ms after the trigger.
+
+![Three-tier predictive controller and safety-island architecture (WHPC 2026): TSO trigger and safety island feeding the hourly / 1 Hz / 200 Hz cascade down to GPU silicon and the facility meter](figs/architecture_controller.png)
+
+## Release scope
+
+- **This repository contains:** `gridpilot/` — the code, configs, data, and reproducibility scripts for both papers.
+- A complete inventory of what ships, with audit-trail references, is in [`docs/RELEASE_CONTENTS.md`](docs/RELEASE_CONTENTS.md).
 
 ## Quick start
 
 ```bash
-# From the workspace root (one level above gridpilot/):
-git submodule update --init --recursive
-python3 -m venv .venv && source .venv/bin/activate
-pip3 install --upgrade pip setuptools wheel
-pip3 install -r gridpilot/requirements.txt
-PYTHONPATH=gridpilot/src pytest -q gridpilot/tests/   # expect 54 passed
-bash gridpilot/scripts/run_all_experiments.sh
-```
-
-Dependency files used by this repository:
-
-- `requirements.txt` (main GridPilot dependencies; required)
-- `raps/api_client/requirements.txt` (optional; only if you use RAPS API client code)
-- `raps/pyproject.toml` (optional; only if you develop/run the RAPS package itself)
-
-If you work directly inside `gridpilot/`, use:
-
-```bash
+# From the gridpilot/ directory:
 python3 -m venv .venv && source .venv/bin/activate
 pip3 install --upgrade pip setuptools wheel
 pip3 install -r requirements.txt
+
+# Smoketest (single cell, ~30 s):
+PYTHONPATH=experiments_v2/src python3 \
+    experiments_v2/scripts/01_single_cell_smoketest.py
+
+# Tests (under 30 s):
+PYTHONPATH=src pytest -q tests/
 ```
 
+## Reproduce the published results
 
-All subsequent commands assume the virtual environment is active.
-The single most useful entry point is:
+### PECS 2026 — the f-SLA contract
 
 ```bash
-bash scripts/run_all_experiments.sh
+# 1. Headline taxonomy sweep + mechanism sweep (~20 min on 4 workers).
+PYTHONPATH=experiments_v2/src python3 \
+    experiments_v2/scripts/04c_run_taxonomy_sweep.py
+PYTHONPATH=experiments_v2/src python3 \
+    experiments_v2/scripts/04d_run_mechanism_sweep.py
+
+# 2. Render the three PECS figures + extract macros into results.tex.
+PYTHONPATH=experiments_v2/src python3 \
+    experiments_v2/scripts/07_render_seasonal_figure.py
+PYTHONPATH=experiments_v2/src python3 \
+    experiments_v2/scripts/09_render_paper_figures.py
+PYTHONPATH=experiments_v2/src python3 \
+    experiments_v2/scripts/11_render_mechanism_figure.py
+PYTHONPATH=experiments_v2/src python3 \
+    experiments_v2/scripts/10_extract_paper_macros.py \
+    --tax-csv  experiments_v2/data/taxonomy_sweep/TAXONOMY_SUMMARY.csv \
+    --mix-csv  experiments_v2/data/taxonomy_sweep/TAXONOMY_MIX.csv \
+    --raw-csv  experiments_v2/data/taxonomy_sweep/taxonomy_sweep.csv \
+    --mech-csv experiments_v2/data/mechanism_sweep/MECHANISM_SUMMARY.csv \
+    --out      ../papers/pecs2026/figs/results.tex
 ```
 
-This runs the M100 policy-matrix replay, the multi-country sweep,
-regenerates every figure, extracts the headline-number macros, and
-rebuilds both PDFs.  Wall time on a 16-core / 64 GB workstation is
-~75 minutes.  For a fast paper rebuild from literature-anchored stub
-data, append `stub`:
+### WHPC 2026 — the GridPilot controller
 
 ```bash
-bash scripts/run_all_experiments.sh stub          # ~2 minutes
+# 1. Hardware experiments (on a comparable 3xV100 SXM2 node).
+PYTHONPATH=scripts python3 scripts/v100/experiments/E2_inner_loop_step_response.py
+PYTHONPATH=scripts python3 scripts/v100/experiments/E3_outer_loop_tracking.py
+PYTHONPATH=scripts python3 scripts/v100/experiments/E4_closed_loop_demand_following.py
+PYTHONPATH=scripts python3 scripts/v100/experiments/E7_ffr_activation_latency.py
+
+# 2. Multi-country PUE-aware sweep (same 04c driver, PUE-aware variant).
+PYTHONPATH=experiments_v2/src python3 \
+    experiments_v2/scripts/04c_run_taxonomy_sweep.py --pue-aware
+
+# 3. Re-render V100 figures from raw telemetry.
+PYTHONPATH=scripts python3 scripts/v100/replot_with_real_data.py
 ```
 
-For a step-by-step description of every stage (including how to
-re-run a single stage), see [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
-
-### Additional ablation sweeps (per-tier + hyperparameter)
-
-Two ablation sweeps complement the multi-country headline above:
-
-```bash
-# Per-tier contribution sweep (T0..T5; ~35 min on 16 cores):
-PYTHONPATH=gridpilot/src python3 \
-    gridpilot/scripts/multicountry/replay_single_tier_sweep.py \
-    --jobs gridpilot/data/traces/m100_real_jobs.parquet \
-    --output-dir gridpilot/data/m100/tier_sweep/ --force
-
-# Contract-hyperparameter sensitivity sweep (~20 min):
-PYTHONPATH=gridpilot/src python3 \
-    gridpilot/scripts/multicountry/replay_hyperparameter_sweep.py \
-    --jobs gridpilot/data/traces/m100_real_jobs.parquet \
-    --output-dir gridpilot/data/m100/hyper_sweep/ --force
-
-# Composed 2x2 figure (~5 s):
-PYTHONPATH=gridpilot/src python3 \
-    gridpilot/scripts/figures/fig_tier_and_hyper.py \
-    --tier-summary  gridpilot/data/m100/tier_sweep/TIER_SUMMARY.csv \
-    --hyper-summary gridpilot/data/m100/hyper_sweep/HYPER_SUMMARY.csv \
-    --out           gridpilot/figs/fig_tier_and_hyper.pdf
-```
-
-Protocol: [`docs/TIER_AND_HYPER_SWEEPS.md`](docs/TIER_AND_HYPER_SWEEPS.md).
-Remote-run copy-paste sequence: [`../EXPERIMENTS_REMOTE.md`](../EXPERIMENTS_REMOTE.md).
+Full hardware reproduction takes ≤ 48 GPU-hours on a comparable 3× V100 SXM2 testbed. The carbon-aware contract replay is CPU-only and completes in under 30 minutes on 4 workers.
 
 ## Repository structure
 
 ```
 gridpilot/
-├── README.md                    ← this file
-├── LICENSE                      ← MIT (code, scripts, configs)
-├── CONTRIBUTING.md              ← how to extend the framework
-├── LIMITATIONS.md               ← scope caveats and lessons learned
-├── requirements.txt             ← Python environment specification
-├── .gitignore
-├── src/                         ← controller + scheduler library
-│   ├── controller/              ← Tier-1/2/3 PID/AR(4)/cluster controllers
-│   ├── cooling/                 ← four-component PUE model
-│   ├── scheduler/               ← f-SLA ladder, M0–M3 mechanisms, dispatcher
-│   └── integration/             ← RAPS adapter + ENTSO-E connector
-├── scripts/                     ← all run scripts (entry: run_all_experiments.sh)
-│   ├── run_all_experiments.sh   ← single end-to-end command
-│   ├── m100/                    ← M100 trace ETL, replays, ENTSO-E fetcher
-│   ├── multicountry/            ← multi-country sweep driver + stub seeder
-│   ├── v100/experiments/        ← V100 hardware-experiment drivers (E1–E7)
-│   └── figures/                 ← figure scripts (read CSVs → PDFs)
-├── data/                        ← bundled traces + telemetry (CC-BY 4.0)
-│   ├── traces/m100_real_jobs.parquet
-│   ├── m100/{policy_matrix,country_sweep}/   ← outputs of the replay drivers
-│   └── v100_raw/                ← raw V100 measurement campaign telemetry
-├── configs/                     ← YAML configurations
-│   ├── grids/{SE,CH,FR,IT,DE,PL}.yaml    ← per-country CI configs
-│   └── raps_systems/marconi100.yaml      ← tracked fallback PUE anchor
-├── raps/                        ← bundled ExaDigiT/RAPS submodule (read-only)
-│   └── config/marconi100.yaml   ← cooling-model calibration anchor
-├── figs/                        ← rendered figure PDFs (auto-generated)
-├── docs/                        ← protocols + reproducibility documentation
-│   ├── RUNBOOK.md               ← step-by-step rerun guide
-│   ├── ARCHITECTURE.md          ← three-tier controller details
-│   ├── DATASETS.md              ← M100, ENTSO-E, RAPS dataset descriptions
-│   ├── V100_MEASUREMENT_PROTOCOL.md ← V100 campaign protocol
-│   ├── FSLA_PROTOCOL.md         ← f-SLA contract specification
-│   ├── COMPANION_PAPERS_MAP.md  ← claim → script → artefact map
-│   └── COUNTRY_SWEEP_PROTOCOL.md, POLICY_MATRIX_PROTOCOL.md
-├── tests/                       ← pytest suite (~30 s; 48 tests)
-└── licenses/                    ← third-party data licence acknowledgements
-
+├── README.md                       ← this file
+├── LICENSE                         ← MIT (code, scripts, configs)
+├── CONTRIBUTING.md                 ← how to extend the framework
+├── LIMITATIONS.md                  ← scope caveats and lessons learned
+├── requirements.txt                ← Python environment specification
+├── src/                            ← controller + scheduler library
+│   ├── controller/                 ← Tier-1/2/3 PID/AR(4)/cluster controllers
+│   ├── cooling/                    ← four-component PUE model
+│   ├── scheduler/                  ← f-SLA ladder + M0–M3 mechanisms
+│   └── integration/                ← RAPS adapter (PUE anchor) + ENTSO-E
+├── experiments_v2/                 ← AUTHORITATIVE pipeline (see AUDIT_FINDINGS.md)
+│   ├── README.md
+│   ├── AUDIT_FINDINGS.md           ← F1–F5 audit; v1 bugs and the v2 fixes
+│   ├── METRICS.md
+│   ├── REALISM.md
+│   ├── PROVENANCE.md
+│   ├── src/                        ← shared accounting + workload taxonomy
+│   │   └── schedulers/             ← fsla_carbon_aware + canonical baselines
+│   ├── scripts/
+│   │   ├── 00_unit_audit.py        ← closed-form sanity tests
+│   │   ├── 01_single_cell_smoketest.py
+│   │   ├── 04c_run_taxonomy_sweep.py    ← headline PECS Table 2 + WHPC E8
+│   │   ├── 04d_run_mechanism_sweep.py   ← PECS Table 3 (M0–M3)
+│   │   ├── 07_render_seasonal_figure.py
+│   │   ├── 09_render_paper_figures.py
+│   │   ├── 10_extract_paper_macros.py
+│   │   ├── 11_render_mechanism_figure.py
+│   │   └── test_fsla_scheduler.py
+│   ├── data/
+│   │   ├── taxonomy_sweep/         ← TAXONOMY_SUMMARY.csv + per-cell JSONs
+│   │   └── mechanism_sweep/        ← MECHANISM_SUMMARY.csv
+│   └── figs/paper/                 ← 5 rendered PDFs + results.tex
+├── scripts/                        ← entry-point scripts (paper + utility)
+│   ├── m100/
+│   │   ├── fetch_real_ci_series.py ← ENTSO-E A75+A11 consumption-mix fetcher
+│   │   └── build_extended_trace.py ← F4-fixed trace builder
+│   ├── v100/                       ← WHPC hardware controller stack
+│   │   ├── controller/             ← Tier-1/2/3 controller
+│   │   ├── experiments/E{2..7}_*.py
+│   │   ├── safety_island/          ← TLA+-spec'd safety-island simulator
+│   │   ├── workloads/              ← three workload archetypes
+│   │   ├── figure_scripts/
+│   │   └── tests/
+│   ├── pue_model/cooling_decomposition.py     ← four-component PUE (WHPC §3.3)
+│   ├── projection/multiyear_50mw.py           ← multi-year facility-scale projection
+│   ├── sensitivity/run_plackett_burman.py     ← PB screening on dispatcher hyperparameters
+│   ├── workflows/                  ← synthetic DAG generators + replay
+│   ├── simulator/                  ← validate_country_config + live ENTSO-E + telemetry
+│   ├── raps_adapter/               ← RAPS YAML reader (PUE anchor)
+│   └── figures/_figstyle.py        ← shared matplotlib style
+├── data/                           ← bundled traces + telemetry (CC-BY 4.0)
+│   ├── traces/m100_real_jobs_extended.parquet
+│   ├── ci/entsoe/                  ← 6 hourly CI parquets
+│   └── v100_raw/                   ← raw V100 measurement campaign
+├── configs/                        ← per-country YAML + RAPS PUE anchor
+├── raps/                           ← ExaDigiT/RAPS submodule (read-only)
+├── docs/                           ← protocols + reproducibility documentation
+│   ├── RELEASE_CONTENTS.md         ← canonical "what ships and why"
+│   ├── ARCHITECTURE.md             ← three-tier controller details
+│   ├── DATASETS.md                 ← M100, ENTSO-E, RAPS datasets
+│   ├── FSLA_PROTOCOL.md            ← f-SLA contract specification
+│   ├── GLOSSARY.md                 ← acronyms + terminology
+│   ├── RATIONALE.md                ← design decisions
+│   ├── CONFIGURE_NEW_COUNTRY.md    ← how to add a country
+│   ├── COUNTRY_PARAMETER_SOURCES.md
+│   ├── EXADIGIT_RAPS_SETUP.md
+│   └── V100_MEASUREMENT_PROTOCOL.md  ← WHPC hardware-campaign protocol
+├── tests/                          ← pytest suite
+├── benchmarks/                     ← micro-benchmarks
+└── licenses/                       ← third-party data licence acknowledgements
 ```
 
 ## RAPS integration
 
-The release bundles a copy of the ExaDigiT/RAPS repository under
-`raps/` and consumes its canonical system configurations at
-`raps/config/<system>.yaml`.  For remote clones where the submodule is
-not initialized, `scripts/run_all_experiments.sh` falls back to
-`configs/raps_systems/marconi100.yaml` for the Marconi100 PUE anchor.
-This is a **lightweight integration
-mode**: we read RAPS configs to extract per-node power, node counts,
-cooling efficiency, and country code, but we do **not** run the RAPS
-simulation engine.
+The kit bundles a copy of the ExaDigiT/RAPS repository under `raps/` as a read-only submodule and consumes its canonical system configuration `raps/config/marconi100.yaml` as the calibration anchor for the four-component PUE model. We **do not** run the RAPS simulation engine — see `experiments_v2/AUDIT_FINDINGS.md` §5 for the post-mortem on why the RAPS scheduler integration was withdrawn (the RAPS dataloader requires the PM100 published-telemetry schema which the raw M100 `sacct` dump does not provide).
 
-The bridge is `src/integration/raps_config_adapter.py`, which parses
-any RAPS system YAML into a `RAPSSystemConfig` dataclass.  Two
-calibration cross-checks ship under `scripts/raps_adapter/`:
-
-```bash
-# Run from the gridpilot/ directory with the project's virtualenv active.
-python3 scripts/raps_adapter/m100_calibration_check.py
-python3 scripts/raps_adapter/frontier_calibration_check.py
-
-# If you are one level above (workspace root), use:
-python3 gridpilot/scripts/raps_adapter/m100_calibration_check.py
-python3 gridpilot/scripts/raps_adapter/frontier_calibration_check.py
-```
-
-Both emit JSON reporting the parsed geometry, per-node max power,
-calibrated PUE, and the structural gap percentage against the RAPS
-scalar `cooling_efficiency`.  The Marconi100 cross-check reports a
-~12 % structural gap (the four-component PUE model is calibrated to
-the published anchor PUE 1.20 rather than the RAPS scalar cooling
-efficiency 0.945); Frontier matches within ±2 %.
+The bridge is `src/integration/raps_config_adapter.py`. Two calibration cross-checks ship under `scripts/raps_adapter/` and are documented as Tier-2 utilities in `docs/RELEASE_CONTENTS.md`.
 
 ## Tests
 
 ```bash
-PYTHONPATH=src pytest -q
+PYTHONPATH=src pytest -q tests/
 ```
 
-48 tests in total, covering: f-SLA tier ladder + Dirichlet prior,
-M0–M3 anti-gaming mechanisms + SWFs + Jain, PUE-aware scheduler
-invariants, RAPS YAML adapter, ENTSO-E CI loader, scheduler error
-paths, CLI round-trip.  All tests pass without network access in
-under 30 seconds.
+Tests cover: f-SLA tier ladder + Dirichlet prior; M0–M3 mechanisms + social-welfare functions + Jain's fairness; PUE-aware scheduler invariants; RAPS YAML adapter; ENTSO-E CI loader; scheduler error paths; CLI round-trip. Network-independent; finishes in under 30 s.
 
-## Claim → script → artefact map
+## Audit trail
 
-The complete claim-to-artefact map for both companion papers, with
-one-line `jq` / `awk` / `python` verification commands for every
-headline number, is in
-[`docs/COMPANION_PAPERS_MAP.md`](docs/COMPANION_PAPERS_MAP.md).
-A reviewer can verify the paper–data correspondence by direct file
-comparison without re-running anything.
+This kit is the v2 pipeline; the v1 dispatcher and its drivers were archived as part of the pre-release cleanup because they had three load-bearing bugs (dead `pue_weight`, incompatible energy accumulators across baseline and treatment, end-of-window padding in `completed`). The audit is `experiments_v2/AUDIT_FINDINGS.md`; the cleanup driver that produced this kit is `papers/pecs2026/cleanup_dev_archive.sh` (documented in `papers/pecs2026/PRE_RELEASE_CLEANUP.md`).
 
-## Reproducing the V100 controller-side measurements
+If you find a discrepancy between a paper claim and a script output, the canonical chain of evidence is:
 
-The V100 hardware E1–E7 campaign is *not* re-runnable from this kit
-alone — it requires the EPFL EcoCloud `ecocloud-exp06` testbed (or a
-comparable 3× V100 SXM2 testbed with NVML).  The raw 100 Hz NVML
-telemetry is shipped under `data/v100_raw/` (CC-BY 4.0); for a fresh
-measurement, follow
-[`docs/V100_MEASUREMENT_PROTOCOL.md`](docs/V100_MEASUREMENT_PROTOCOL.md)
-(≤ 48 GPU-hours on the same testbed class).
+1. paper claim → `papers/<paper>/figs/results.tex` macro
+2. → `experiments_v2/data/<sweep>/SUMMARY.csv` row
+3. → per-cell JSON in `experiments_v2/data/<sweep>/cells/`
+4. → script `experiments_v2/scripts/04c_run_taxonomy_sweep.py` (or 04d)
+5. → dispatcher `experiments_v2/src/schedulers/fsla_carbon_aware.py`
+6. → accounting `experiments_v2/src/accounting.py`
 
-## Limitations and lessons learned
+## Citations
 
-We document scope caveats explicitly so reviewers and reproducers can
-calibrate expectations.  See
-[`LIMITATIONS.md`](LIMITATIONS.md) for the full discussion; four
-lessons summarised:
+If you use this kit, please cite the two companion papers:
 
-1. The 5 % closed-loop tracking threshold (E4) is a cascade-composition
-   diagnostic, not a failure mode — the bursty 11.08 % residual is
-   what the Tier-2 host predictor absorbs.
-2. The ~97 ms FFR latency (E7) is reproducible only with the
-   deterministic safety-island bypass — Python-only implementations
-   show p99 > 250 ms.
-3. Facility-meter accounting is the binding correctness criterion: a
-   controller that ignores the four-component PUE under-delivers at the
-   meter by 4–7 pp.
-4. Deferral alone is not enough on a small, lightly-loaded trace
-   like the bundled M100 month — the literature-grounded T4 elastic-
-   burst tier (CarbonScaler), spatial routing (GAIA), and price-
-   proportional credits (Lechowicz) are the three SOTA-grounded
-   extensions the kit ships or designs.
-
-## Citing
-
-Two papers are in submission for Euro-Par 2026 Workshops; cite the
-companion most relevant to your use:
-
-```bibtex
-@inproceedings{constantinescu2026gridpilot,
-  title     = {{GridPilot}: Real-Time Grid-Responsive Control for {AI} Supercomputers},
+```
+@inproceedings{gridpilot-whpc-2026,
   author    = {Constantinescu, Denisa-Andreea and Atienza, David},
-  booktitle = {Euro-Par 2026 Workshops --- Women in HPC (WHPC) Session},
-  year      = {2026},
-  publisher = {Springer LNCS},
-  note      = {Companion paper to ``f-SLA: A User-Side Contract for
-                Truthful Workload Flexibility towards Carbon-Free
-                Supercomputing''}
+  title     = {{GridPilot}: Real-Time Grid-Responsive Control for {AI} Supercomputers},
+  booktitle = {Proceedings of Euro-Par 2026 Workshops (WHPC)},
+  year      = {2026}
 }
 
-@inproceedings{anonymous2026fsla,
-  title     = {{f-SLA}: A User-Side Contract for Truthful Workload Flexibility
-               towards Carbon-Free Supercomputing},
-  author    = {Anonymous},
-  booktitle = {Euro-Par 2026 Workshops --- Performance and Energy-efficient
-               Computing Systems (PECS)},
-  year      = {2026},
-  publisher = {Springer LNCS},
-  note      = {Double-blind submission; authorship restored at camera-ready}
+@inproceedings{fsla-pecs-2026,
+  author    = {Anonymous (double-blind)},
+  title     = {{f-SLA}: A User-Side Contract for Truthful Workload Flexibility towards Carbon-Free Supercomputing},
+  booktitle = {Proceedings of Euro-Par 2026 Workshops (PECS)},
+  year      = {2026}
 }
 ```
 
-## Acknowledgements
+## Licensing
 
-This work has been partially supported by the EPFL Solutions 4 Sustainability program ‘‘HeatingBits: renewable-supplied data centers integrating heating and cooling supply of local districts’’ and the UrbanTwin project (ETH Board Joint Initiatives for the Strategic Area Energy, Climate and Environmental Sustainability, and the Strategic Area Engagement and Dialogue with Society).
-The authors also thank the EcoCloud center of EPFL, in particular Dr. Xavier Ouvrard, for providing access to the V100 server node.
-
-## Licence
-
-- **Code (scripts, configs):** [MIT](LICENSE)
-- **Figures and data:** [CC-BY 4.0](licenses/CC-BY-4.0.txt)
-- **Papers:** subject to the Euro-Par 2026 Workshops publication agreement
-- **Third-party data** (M100 PM100, ENTSO-E A75, RAPS configurations):
-  see [`licenses/THIRD_PARTY.md`](licenses/THIRD_PARTY.md).
-
-## Contact
-
-For questions, issues, and contributions: see
-[`CONTRIBUTING.md`](CONTRIBUTING.md) or email
-`denisa.constantinescu@epfl.ch`.
+- Code, scripts, configs: MIT (`LICENSE`).
+- Data, bundled traces, telemetry: CC-BY 4.0 (`licenses/CC-BY-4.0.txt`).
+- Third-party acknowledgements: `licenses/THIRD_PARTY.md`.

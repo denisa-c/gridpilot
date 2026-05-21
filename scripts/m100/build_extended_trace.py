@@ -10,7 +10,7 @@ Default source: the in-repo public subset under
 ``gridpilot/data/m100_public/`` (published from the full ExaMon dump
 by ``scripts/m100/publish_m100_subset.sh``).  If that subset is not
 present, the script falls back to the original CINECA raw dump root
-``/Users/nisa/code/M100`` (developer workstation only).  Either way,
+``$M100_RAW_PATH`` (developer workstation only).  Either way,
 override with ``--m100-root``.  Output:
 ``data/traces/m100_real_jobs_extended.parquet``.
 
@@ -53,15 +53,11 @@ FEB_JOB_TABLE = "year_month=22-02/plugin=job_table/metric=job_info_marconi100/a_
 #      (single Feb 2022 job_table parquet, ~tens of MiB; ships with
 #      the public repo and is the recommended source on remote
 #      machines).
-#   2. ``/Users/nisa/code/M100``          — the full ExaMon raw dump
+#   2. ``$M100_RAW_PATH``                 — the full ExaMon raw dump
 #      (developer workstation only; hundreds of GiB).
 # Override either with ``--m100-root``.
 _PUBLIC_SUBSET = ROOT / "data" / "m100_public"
-_LEGACY_LOCAL = Path("/Users/nisa/code/M100")
-if (_PUBLIC_SUBSET / FEB_JOB_TABLE).exists():
-    DEFAULT_M100_ROOT = _PUBLIC_SUBSET
-else:
-    DEFAULT_M100_ROOT = _LEGACY_LOCAL
+DEFAULT_M100_ROOT = _PUBLIC_SUBSET
 
 
 # Candidate column-name lists for each unified field.  Patterns are

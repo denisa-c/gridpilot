@@ -1,1 +1,0 @@
-{"country": "CH", "mw": 10, "layer": "fsla_M3", "seed": 1, "nodes": 6667, "n_completed": NaN, "n_truncated": NaN, "energy_kwh": 7101.479166670179, "ci_weighted_mean": 32.297723768117734, "cfe_canonical_pct": 95.96278452898528, "co2_g_it": 225288.62140311243, "co2_g_facility": 437815.91238844284, "v1_n_jobs": 20000, "source": "v1_fsla_dispatcher", "_wall_s": 1.9073486328125e-06}

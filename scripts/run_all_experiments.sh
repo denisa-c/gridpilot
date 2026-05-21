@@ -23,7 +23,6 @@
 #     |   1   | M100 policy-matrix replay            | full   |   26 min |
 #     |   2   | Multi-country sweep (6 grids x 3 MW) | full   |   42 min |
 #     |  3a   | Regenerate every paper figure (PDF)  | both   |   30 sec |
-#     |  3b   | Render per-paper architecture        | both   |   10 sec |
 #     |   4   | Extract macros + rebuild both PDFs   | both   |   30 sec |
 #     +-------+--------------------------------------+--------+----------+
 #                                          Total full mode: ~75 min
@@ -47,7 +46,7 @@
 #   M100_ROOT=/path/to/M100 bash ... full                   # override extended-trace source
 #       (default: gridpilot/data/m100_public/, the in-repo subset.
 #        Falls back to the developer-workstation raw dump
-#        /Users/nisa/code/M100 if the in-repo subset is missing.)
+#        at $M100_ROOT if the in-repo subset is missing.)
 #
 # Resumability (full mode):
 #   * A step is treated as COMPLETE if its canonical artefact AND the
@@ -237,7 +236,7 @@ mkdir -p "${PROJECT_ROOT}/papers/whpc2026/figs"
 #   Source resolution order:
 #     1. $M100_ROOT (if exported by the caller)
 #     2. gridpilot/data/m100_public/   (the in-repo published subset)
-#     3. /Users/nisa/code/M100         (developer-workstation raw dump)
+#     3. $M100_ROOT                    (developer-workstation raw dump, if set)
 # =====================================================================
 EXT_TRACE="data/traces/m100_real_jobs_extended.parquet"
 JAN_TRACE="data/traces/m100_real_jobs.parquet"
@@ -248,8 +247,6 @@ if [[ -n "${M100_ROOT:-}" && -f "${M100_ROOT}/${FEB_KEY}" ]]; then
     M100_SRC="${M100_ROOT}"
 elif [[ -f "data/m100_public/${FEB_KEY}" ]]; then
     M100_SRC="data/m100_public"
-elif [[ -f "/Users/nisa/code/M100/${FEB_KEY}" ]]; then
-    M100_SRC="/Users/nisa/code/M100"
 else
     M100_SRC=""
 fi
@@ -396,27 +393,6 @@ PYTHONPATH=src "${PYTHON}" "scripts/figures/fig_tier_and_hyper.py" \
     || echo "[run-all] WARN: fig_tier_and_hyper.py failed; continuing"
 _step_end
 
-# =====================================================================
-# Step 3b: Render per-paper architecture placeholders + 5-tier f-SLA
-# =====================================================================
-_step_begin "Render per-paper architecture figures"
-PYTHONPATH=src "${PYTHON}" scripts/figures/fig_fsla_architecture.py \
-    --out "${PROJECT_ROOT}/papers/pecs2026/figs/architecture.pdf"
-PYTHONPATH=src "${PYTHON}" scripts/figures/fig_gridpilot_architecture.py \
-    --out "${PROJECT_ROOT}/papers/whpc2026/figs/architecture.pdf"
-
-# Redrawn 5-tier f-SLA architecture (T0..T4 drawn; T5 spatial is the
-# C2 follow-on) used by the PECS body.  The legacy hand-drawn
-# architecture-custom.pdf (pre-T4) is kept on disk for diff but no
-# longer cited.  The script resolves its own output path under
-# papers/pecs2026/figs/architecture-5tier.pdf.
-PYTHONPATH=src "${PYTHON}" scripts/figures/fig_architecture_5tier.py
-
-# Optionally produce the editable .pptx masters too.
-if "${PYTHON}" -c "import pptx" >/dev/null 2>&1; then
-    PYTHONPATH=src "${PYTHON}" scripts/figures/make_architecture_pptx.py
-fi
-_step_end
 
 # =====================================================================
 # Step 4: Extract paper macros and rebuild the two PDFs

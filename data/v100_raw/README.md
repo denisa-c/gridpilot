@@ -3,7 +3,7 @@
 ## Status
 
 The CSVs and JSON files in this directory are the **real measurements**
-collected on EPFL EcoCloud's `ecocloud-exp06` testbed during the April 2026
+collected on EPFL EcoCloud's `<testbed-node>` testbed during the April 2026
 GridPilot E1–E7 measurement campaign. Hostname, GPU UUIDs, NVML driver
 version, and wallclock timestamps are preserved in the per-experiment
 `*.meta.json` and `*.stdout` files.
@@ -17,7 +17,7 @@ and [`../../scripts/v100/`](../../scripts/v100/).
 
 | Field | Value |
 |-------|-------|
-| Hostname | `ecocloud-exp06` (EPFL EcoCloud) |
+| Hostname | `<testbed-node>` (EPFL EcoCloud) |
 | GPUs | 3× NVIDIA Tesla V100-SXM2 32 GB, 300 W TDP each |
 | GPU UUIDs | `GPU-c0334254-...` and 2 others (preserved in `*.meta.json`) |
 | Driver / NVML | 580.65.06 / NVML 12.x |

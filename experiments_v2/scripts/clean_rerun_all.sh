@@ -70,6 +70,16 @@ LOG_FILE="${LOG_DIR}/v2_clean_rerun_${STAMP}.log"
 exec > >(tee -a "${LOG_FILE}") 2>&1
 
 MAX_JOBS_DEFAULT="${MAX_JOBS:-20000}"
+# Trace selector.  Default empty (= each script's own default, currently
+# the broken extended trace).  Set JOBS_TRACE=/path/to/parquet to force
+# every sweep to use that trace instead.  For the "real 28-day Jan-only
+# trace" run, set:
+#   JOBS_TRACE=$PWD/gridpilot/data/traces/m100_real_jobs.parquet
+JOBS_TRACE_DEFAULT="${JOBS_TRACE:-}"
+_jobs_flag=""
+if [[ -n "${JOBS_TRACE_DEFAULT}" ]]; then
+    _jobs_flag="--jobs ${JOBS_TRACE_DEFAULT}"
+fi
 
 echo "======================================================================"
 echo "experiments_v2 clean rerun"
@@ -220,6 +230,7 @@ if [[ -f "${V2_ROOT}/scripts/02_run_country_sweep.py" ]]; then
             --output-dir "${V2_ROOT}/data/country_sweep" \
             --workers    "${WORKERS:-4}" \
             --max-jobs   "${MAX_JOBS_DEFAULT}" \
+            ${_jobs_flag} \
         || { echo "Phase 4a FAIL"; exit 4; }
     N_RAN=$((N_RAN + 1))
 else
@@ -236,6 +247,7 @@ if [[ -f "${V2_ROOT}/scripts/03_run_tier_sweep.py" ]]; then
             --output-dir "${V2_ROOT}/data/tier_sweep" \
             --workers    "${WORKERS:-4}" \
             --max-jobs   "${MAX_JOBS_DEFAULT}" \
+            ${_jobs_flag} \
         || { echo "Phase 4b FAIL"; exit 4; }
     N_RAN=$((N_RAN + 1))
 else
@@ -252,6 +264,7 @@ if [[ -f "${V2_ROOT}/scripts/04_run_hyper_sweep.py" ]]; then
             --output-dir "${V2_ROOT}/data/hyper_sweep" \
             --workers    "${WORKERS:-4}" \
             --max-jobs   "${MAX_JOBS_DEFAULT}" \
+            ${_jobs_flag} \
         || { echo "Phase 4c FAIL"; exit 4; }
     N_RAN=$((N_RAN + 1))
 else
@@ -261,18 +274,35 @@ else
     N_SKIPPED=$((N_SKIPPED + 1))
 fi
 
-_phase_banner "Phase 4d — seasonal sweep (4 dates × CH/IT/DE, real ENTSO-E where present)"
+_phase_banner "Phase 4d — seasonal sweep (4 dates × all 6 countries, ENTSO-E where present)"
 if [[ -f "${V2_ROOT}/scripts/04b_run_seasonal_sweep.py" ]]; then
     PYTHONPATH="${GRIDPILOT_ROOT}/src:${V2_ROOT}/src" \
         "${PYTHON}" "${V2_ROOT}/scripts/04b_run_seasonal_sweep.py" \
             --output-dir "${V2_ROOT}/data/seasonal_sweep" \
             --workers    "${WORKERS:-4}" \
+            ${_jobs_flag} \
         || { echo "Phase 4d FAIL"; exit 4; }
     N_RAN=$((N_RAN + 1))
 else
     _missing_script "Phase 4d — seasonal sweep" \
         "${V2_ROOT}/scripts/04b_run_seasonal_sweep.py" \
-        "4 representative days × CH/IT/DE × {baselines, M3} × seeds"
+        "4 representative days × 6 countries × {baselines, M3} × seeds"
+    N_SKIPPED=$((N_SKIPPED + 1))
+fi
+
+_phase_banner "Phase 4e — taxonomy sweep (classifier-driven tiers; 4 dates × 6 countries)"
+if [[ -f "${V2_ROOT}/scripts/04c_run_taxonomy_sweep.py" ]]; then
+    PYTHONPATH="${GRIDPILOT_ROOT}/src:${V2_ROOT}/src" \
+        "${PYTHON}" "${V2_ROOT}/scripts/04c_run_taxonomy_sweep.py" \
+            --output-dir "${V2_ROOT}/data/taxonomy_sweep" \
+            --workers    "${WORKERS:-4}" \
+            ${_jobs_flag} \
+        || { echo "Phase 4e FAIL"; exit 4; }
+    N_RAN=$((N_RAN + 1))
+else
+    _missing_script "Phase 4e — taxonomy sweep" \
+        "${V2_ROOT}/scripts/04c_run_taxonomy_sweep.py" \
+        "4 days × 6 countries × {baselines, fsla_taxonomy} × seeds"
     N_SKIPPED=$((N_SKIPPED + 1))
 fi
 
@@ -309,18 +339,58 @@ else
     N_SKIPPED=$((N_SKIPPED + 1))
 fi
 
-_phase_banner "Phase 5c — render fig_proact_1x4-style seasonal figure"
+_phase_banner "Phase 5c — render fig_proact_1x4-style seasonal figure (linear + log)"
 if [[ -f "${V2_ROOT}/scripts/07_render_seasonal_figure.py" ]]; then
+    # Two variants: linear (v2 default, easier to read) and log
+    # (reproduces the v1 reference figure's axis convention).
     PYTHONPATH="${V2_ROOT}/src" \
         "${PYTHON}" "${V2_ROOT}/scripts/07_render_seasonal_figure.py" \
             --seasonal-csv "${V2_ROOT}/data/seasonal_sweep/seasonal_sweep.csv" \
-            --out          "${V2_ROOT}/figs/fig_proact_1x4_v2.pdf" \
-        || { echo "Phase 5c FAIL"; exit 5; }
+            --out          "${V2_ROOT}/figs/fig_proact_1x4_v2_linear.pdf" \
+        || { echo "Phase 5c linear FAIL"; exit 5; }
+    PYTHONPATH="${V2_ROOT}/src" \
+        "${PYTHON}" "${V2_ROOT}/scripts/07_render_seasonal_figure.py" \
+            --seasonal-csv "${V2_ROOT}/data/seasonal_sweep/seasonal_sweep.csv" \
+            --out          "${V2_ROOT}/figs/fig_proact_1x4_v2_log.pdf" \
+            --log \
+        || { echo "Phase 5c log FAIL"; exit 5; }
     N_RAN=$((N_RAN + 1))
 else
     _missing_script "Phase 5c — fig_proact_1x4 v2" \
         "${V2_ROOT}/scripts/07_render_seasonal_figure.py" \
         "2x2 fig_proact_1x4-style figure (CFE surface, seasonal bars, CI diurnal, Pareto)"
+    N_SKIPPED=$((N_SKIPPED + 1))
+fi
+
+_phase_banner "Phase 5d — render taxonomy figure (4 panels, audit + per-class)"
+if [[ -f "${V2_ROOT}/scripts/08_render_taxonomy_figure.py" ]]; then
+    PYTHONPATH="${V2_ROOT}/src" \
+        "${PYTHON}" "${V2_ROOT}/scripts/08_render_taxonomy_figure.py" \
+            --taxonomy-csv "${V2_ROOT}/data/taxonomy_sweep/taxonomy_sweep.csv" \
+            --taxonomy-mix "${V2_ROOT}/data/taxonomy_sweep/TAXONOMY_MIX.csv" \
+            --out          "${V2_ROOT}/figs/fig_taxonomy_v2.pdf" \
+        || { echo "Phase 5d FAIL"; exit 5; }
+    N_RAN=$((N_RAN + 1))
+else
+    _missing_script "Phase 5d — taxonomy figure" \
+        "${V2_ROOT}/scripts/08_render_taxonomy_figure.py" \
+        "4 panels: per-country lift, class mix audit, per-class CFE, seasonal trajectory"
+    N_SKIPPED=$((N_SKIPPED + 1))
+fi
+
+_phase_banner "Phase 5e — render PAPER figures (all 4) from the taxonomy CSV"
+if [[ -f "${V2_ROOT}/scripts/09_render_paper_figures.py" ]]; then
+    PYTHONPATH="${V2_ROOT}/src" \
+        "${PYTHON}" "${V2_ROOT}/scripts/09_render_paper_figures.py" \
+            --taxonomy-csv "${V2_ROOT}/data/taxonomy_sweep/taxonomy_sweep.csv" \
+            --taxonomy-mix "${V2_ROOT}/data/taxonomy_sweep/TAXONOMY_MIX.csv" \
+            --out-dir      "${V2_ROOT}/figs/paper" \
+        || { echo "Phase 5e FAIL"; exit 5; }
+    N_RAN=$((N_RAN + 1))
+else
+    _missing_script "Phase 5e — paper figures" \
+        "${V2_ROOT}/scripts/09_render_paper_figures.py" \
+        "headline + class breakdown + seasonal + country-vs-CI (4 PDFs)"
     N_SKIPPED=$((N_SKIPPED + 1))
 fi
 
