@@ -4,7 +4,7 @@ scripts/pue_model/cooling_decomposition.py
 ==========================================
 
 Re-export shim for the four-component cooling decomposition.  Backs the
-PUE-model script reference in PECS 2026 §3.
+PUE-model script reference in f-SLA paper §3.
 
 Usage as a CLI::
 

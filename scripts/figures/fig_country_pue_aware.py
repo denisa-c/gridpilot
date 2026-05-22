@@ -2,7 +2,7 @@
 """
 scripts/figures/fig_country_pue_aware.py
 ========================================
-Two-panel headline figure for the WHPC controller paper:
+Two-panel headline figure for the GridPilot paper:
 
   (a)  Δ_facility (pp) from the PUE-aware FFR controller relative to
        the CI-only baseline, one bar per country, ordered by CI.

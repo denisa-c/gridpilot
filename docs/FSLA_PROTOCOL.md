@@ -1,7 +1,7 @@
 # f-SLA Protocol — Formal Specification
 
-**Version:** 1.1 (PECS 2026 / GridPilot v1.1 release; six-tier ladder + canonical-CFE metric)
-**Backs:** PECS 2026 Paper Sect.~\ref{sec:fsla} ("The f-SLA Contract: Eliciting Truthful Flexibility").  The declared-tier-injection counterfactual that lifts the IT-CO₂ ceiling — tagged "Finding 3" in the legacy single-paper draft and still referenced under that name in source-code comments — is the formal basis for Sect.~\ref{sec:fsla}.
+**Version:** 1.1 (GridPilot v1.1 release; six-tier ladder + canonical-CFE metric)
+**Backs:** f-SLA paper Sect.~\ref{sec:fsla} ("The f-SLA Contract: Eliciting Truthful Flexibility").  The declared-tier-injection counterfactual that lifts the IT-CO₂ ceiling — tagged "Finding 3" in the legacy single-paper draft and still referenced under that name in source-code comments — is the formal basis for Sect.~\ref{sec:fsla}.
 
 This document defines the flexible Service-Level Agreement (f-SLA) contract precisely enough that an independent implementer can reproduce the evidence chain on any cluster trace. It is the formal companion to `src/scheduler/fsla.py` and `scripts/m100/inject_fsla_prior.py`.
 
@@ -50,7 +50,7 @@ The credit schedule α₀ < α₁ < α₂ < α₃ is constructed so that truthfu
 - **Under-declaration (declaring T_{k−1} when true type is T_k).** The user forfeits the marginal credit Δα = α_k − α_{k−1} per deferred hour. The scheduler delivers stricter QoS than the user's true tolerance, so no clause is violated; the loss is purely in foregone credit.
 - **Over-declaration (declaring T_{k+1} when true type is T_k).** The scheduler may exploit the larger window and produce a slowdown up to s_max(T_{k+1}) > s_max(T_k); this exceeds the user's true tolerance and triggers a logged exception (force-dispatch). The user is not charged for the deferred-hours credit, but the QoS hit is real.
 
-A formal incentive-compatibility proof under stronger informational assumptions (single-shot, full-information valuation) is the explicit subject of follow-on work and is not claimed in the PECS 2026 paper.
+A formal incentive-compatibility proof under stronger informational assumptions (single-shot, full-information valuation) is the explicit subject of follow-on work and is not claimed in the f-SLA paper.
 
 ## 5. Dispatch-loop integration
 

@@ -17,7 +17,7 @@ Forecast assumption
 **Perfect CI / CFE forecast over the user's declared deferral
 window.**  The v2 paper claims this explicitly as the upper-bound
 of what a contract-only mechanism (no model uncertainty) can
-extract; the downstream production controller (the GridPilot WHPC
+extract; the downstream production controller (the GridPilot
 companion paper) is the place where forecast error is handled.
 Here the scheduler peeks at ``ci_df[h]`` and
 ``ci_df['carbon_free_fraction'][h]`` for every candidate hour ``h

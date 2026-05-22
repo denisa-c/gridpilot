@@ -1,6 +1,6 @@
-# experiments_v2 — clean-room rerun for the PECS paper
+# experiments_v2 — clean-room rerun for the f-SLA paper
 
-This directory is the **quarantined replacement** for the PECS empirical
+This directory is the **quarantined replacement** for the f-SLA paper empirical
 pipeline.  Every CSV, JSON checkpoint, macro file and rendered figure
 that the paper builds against will be produced **here**, by scripts
 **here**, with provenance metadata recorded **here**.

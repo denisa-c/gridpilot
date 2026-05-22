@@ -2,7 +2,7 @@
 """
 experiments_v2/scripts/09_render_paper_figures.py
 ==================================================
-Phase 5e — render the four publication-ready PECS paper figures.
+Phase 5e — render the four publication-ready f-SLA paper figures.
 
 All four figures share one style module (``figure_style``) so the
 PDF set looks like a coherent figure pack rather than four hand-rolled

@@ -3,7 +3,7 @@
 # scripts/run_all_experiments.sh
 # ---------------------------------------------------------------------
 # Single end-to-end command that runs every experiment behind the two
-# papers (WHPC: GridPilot controller; PECS: f-SLA contract), extracts
+# papers (GridPilot controller; f-SLA paper: f-SLA contract), extracts
 # the headline-number macros from the on-disk outputs, regenerates all
 # figures from real data, and rebuilds both PDFs.
 #

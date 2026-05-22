@@ -4,7 +4,7 @@ scripts/projection/multiyear_50mw.py
 ====================================
 
 Operational-only multi-year 50 MW projection (2025 → 2028 → 2032).
-Backs PECS 2026 §8 Table 3.  No frequency-response component — the
+Backs f-SLA paper §8 Table 3.  No frequency-response component — the
 2025 anchor values come from ``data/operational_only_2025.csv``:
 
     CH 9.5 %   IT 7.0 %   DE 9.3 %

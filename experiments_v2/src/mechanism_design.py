@@ -27,7 +27,7 @@ from typing import Callable
 import numpy as np
 
 # ── Ladder constants ──────────────────────────────────────────────
-# Match Table 1 of the PECS paper exactly.
+# Match Table 1 of the f-SLA paper exactly.
 ALPHA = np.array([0.00, 0.02, 0.04, 0.06, 0.08, 0.10])    # credit rate
 W_H   = np.array([0,    1,    24,   168,  24,   24],
                   dtype=float)                              # window (h)

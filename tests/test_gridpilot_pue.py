@@ -2,7 +2,7 @@
 tests/test_gridpilot_pue.py
 ============================
 
-Five invariants for the GridPilot-PUE scheduler that back PECS Findings 1
+Five invariants for the GridPilot-PUE scheduler that back f-SLA paper Findings 1
 and 2 (Pareto-optimality at preserved QoS, and the IT-vs-facility gap).
 
 Run::

@@ -129,7 +129,7 @@ def test_daauction_strategy_proof_one_tier_deviation():
     # Marginal credit per deferred hour, monotone in tier:
     # truthful bid at tier k ⇒ credit α_k × W_k.
     # Deviation up: limited by length conditioning; deviation down:
-    # forfeits credit (Section §5.3 PECS).
+    # forfeits credit (Section §5.3 f-SLA paper).
     for k in (T_RIGID, T_HOUR, T_DAY, T_WEEK):
         credit_k = TIER_CREDIT_H[k] * TIER_WINDOW_H[k]
         for dev in (-1, 1):

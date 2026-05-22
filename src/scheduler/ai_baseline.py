@@ -2,7 +2,7 @@
 src/scheduler/ai_baseline.py
 ----------------------------
 Naive AI tier-baseline predictor for the f-SLA gamification PoC
-(PECS Paper B §5.5 + FSLA_GAMIFICATION_VISION.md §2.1).
+(f-SLA paper B §5.5 + FSLA_GAMIFICATION_VISION.md §2.1).
 
 Vision §6 (Phase 1) explicitly calls out a per-user-mean predictor as
 the prototype-grade fallback before real AIDAS telemetry is wired in.

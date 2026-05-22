@@ -2,7 +2,7 @@
 experiments_v2/src/workload_taxonomy.py
 ========================================
 Defensible classification of HPC/AI jobs into the six workload classes
-of the paper's flexibility taxonomy (Fig. 1 of the PECS submission).
+of the paper's flexibility taxonomy (Fig. 1 of the f-SLA paper submission).
 
 Each class maps to one f-SLA tier; the per-class proportions on the
 M100 trace are cross-checked against the published statistics of
@@ -17,7 +17,7 @@ prior (``α=(3, 3, 2.5, 1.5)``).  That prior is a placeholder for the
 *actual* per-job flexibility a user would declare; the M3 mechanism
 study uses it because no real declared-flexibility data exists.
 
-For the PECS paper's "does the contract work across workload types"
+For the f-SLA paper's "does the contract work across workload types"
 question, we replace the synthetic prior with a deterministic
 classifier driven by observable job features (runtime, allocated
 nodes, requested time-limit).  This (a) lets us check the per-class

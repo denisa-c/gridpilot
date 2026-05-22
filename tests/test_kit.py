@@ -91,7 +91,7 @@ def test_results_csv_present_or_runnable():
     candidate_csvs = [
         ROOT / "data" / "simulator_outputs" / "icpp_full_matrix.csv",
         ROOT / "data" / "results" / "icpp_full_matrix.csv",            # legacy path
-        ROOT / "data" / "table1_headline_savings.csv",                 # PECS Table 2 source
+        ROOT / "data" / "table1_headline_savings.csv",                 # f-SLA paper Table 2 source
     ]
     candidate_runners = [
         ROOT / "scripts" / "simulator" / "run_full_matrix.py",

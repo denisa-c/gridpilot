@@ -3,7 +3,7 @@
 scripts/raps_adapter/m100_calibration_check.py
 ==============================================
 
-Reproduces the §3.6 PECS-paper finding: the four-component PUE model
+Reproduces the §3.6 f-SLA paper-paper finding: the four-component PUE model
 calibrated to the published M100 design PUE of 1.20 predicts a
 design-point facility power that is ~12 % above the RAPS scalar
 ``cooling_efficiency`` abstraction (0.945 → PUE 1.058).  That 12 %

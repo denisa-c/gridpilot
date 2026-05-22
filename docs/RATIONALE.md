@@ -1,7 +1,7 @@
 # Rationale: per-decision log for the GridPilot kit
 
 This document records the *why* behind every consequential design
-choice in the GridPilot reproducibility kit (PECS f-SLA paper, WHPC
+choice in the GridPilot reproducibility kit (f-SLA paper, GridPilot
 controller paper, C2 spatial+workflow follow-on).  Future maintainers
 and reviewers should be able to look up any decision here without
 re-deriving the trade-off.
@@ -47,7 +47,7 @@ beating it.
 ## 2. Why six tiers (T0..T5)?
 
 The tier ladder is calibrated to the workload-flexibility taxonomy
-of Fig.\ *workloads* in the PECS paper:
+of Fig.\ *workloads* in the f-SLA paper:
 
 | Class | Fraction of GPU·h | Maps to |
 |---|---|---|
@@ -103,7 +103,7 @@ hypothesis H2).
 
 ## 4. Why CFE as the primary metric rather than ΔCO₂%?
 
-The PECS paper §4 has a named paragraph on this; the short version:
+The f-SLA paper §4 has a named paragraph on this; the short version:
 
 - **CFE is user-visible.**  The fraction of compute energy actually
   served by carbon-free electricity is the same quantity a Scope-2
@@ -125,7 +125,7 @@ the **energy-weighted effective grid CI** (in g/kWh, continuous
 dynamic range, ranks grids correctly).  ΔCO₂% is reported in the
 kit (the `co2_avoided_tonnes_y` column of `country_sweep.csv`) but
 as a *climate-impact* metric, not as the primary measure of the
-contract's effectiveness.  PECS Finding B makes the asymmetry
+contract's effectiveness.  f-SLA paper Finding B makes the asymmetry
 explicit: CFE-lift is largest on the *cleanest* grids; avoided
 tonnage is largest on the *dirtiest* ones — reporting only one is a
 category error.
@@ -152,7 +152,7 @@ publicly-visible over-claim risking a clause violation.  This is the
 mechanism that empirically minimises the NOM-IC violation rate at
 no fairness or SWF cost (measured in the policy-matrix sweep).
 
-## 6. Why the PUE-aware dispatcher (for the WHPC paper)?
+## 6. Why the PUE-aware dispatcher (for the GridPilot paper)?
 
 European balancing markets settle reserves **at the facility meter,
 not at the GPU board**.  A controller that commits a 2 MW FFR band
@@ -168,10 +168,10 @@ adapter; the L² (pumps) and L³ (air-handling) cooling-affinity
 floors follow Sun et al.\ (2020) and the multi-chiller MPC
 formulation of Zhao et al.\ (2024).  Without the PUE correction the
 controller's commitment is *intrinsically* dishonest at the meter;
-with it the WHPC paper shows the dispatched FFR setpoint matches
+with it the GridPilot paper shows the dispatched FFR setpoint matches
 the metered-side reserve commitment within ±1 pp.
 
-## 7. Why a deterministic safety-island bypass (for the WHPC paper)?
+## 7. Why a deterministic safety-island bypass (for the GridPilot paper)?
 
 The 97 ms median end-to-end FR latency is reproducible only because
 the safety-island bypass is deterministic — a small (<400 lines of
@@ -188,7 +188,7 @@ kernel honours `SCHED_FIFO`.
 ## 8. Why bundle the M100 trace?
 
 The bundled `data/traces/m100_real_jobs.parquet` (1 994 jobs,
-January 2022) is small (~3 MB) and lets the PECS paper's multi-
+January 2022) is small (~3 MB) and lets the f-SLA paper's multi-
 country sweep run end-to-end without a download step.  In addition,
 `data/m100_public/` ships the **Feb 2022 SLURM `sacct` slice** of the
 Marconi100 ExaData archive (CINECA / Univ. of Bologna; CC-BY 4.0),
@@ -234,7 +234,7 @@ trail.
 
 ## 11. Why the architecture-5tier.pdf override?
 
-The PECS paper's architecture figure has a deterministic redraw
+The f-SLA paper's architecture figure has a deterministic redraw
 (`papers/pecs2026/figs/architecture-5tier.pdf`, written by
 `scripts/figures/fig_architecture_5tier.py`) that depicts the f-SLA
 ladder explicitly with the T4 elastic-burst tier added in v1.1.  The
@@ -252,17 +252,17 @@ regeneration.
 
 ## 12. Why the v0.1 C2 scaffolding ships in v1.0?
 
-Schema-forward-compatibility.  The v1.0 PECS reproducibility kit
+Schema-forward-compatibility.  The v1.0 f-SLA paper reproducibility kit
 needs to be a single artefact under MIT/CC-BY 4.0; if the C2
 follow-on paper introduces new columns (`is_spatial_eligible`,
 `spatial_clause`, `dag_node_id`, `dag_parent_id`) in v1.1, the v1.0
 CSV outputs would be schema-incompatible and reviewers would not be
-able to compare PECS v1.0 numbers across releases.  Shipping the
+able to compare f-SLA paper v1.0 numbers across releases.  Shipping the
 columns as no-op defaults in v1.0 keeps the schema stable.
 
 The C2 modules (`spatial_routing.py`, `workflow_dag.py`,
 `dag_mechanisms.py`, `egress_cost.py`) are dependency-light and
-pytest-covered, so they impose no runtime cost on the PECS pipeline
+pytest-covered, so they impose no runtime cost on the f-SLA paper pipeline
 and no install-cost beyond `networkx>=3.1` (optional).
 
 See [`C2_SPATIAL_AND_WORKFLOW.md`](C2_SPATIAL_AND_WORKFLOW.md) for
@@ -277,10 +277,10 @@ Many source-code docstrings (e.g. in `src/scheduler/fsla.py`,
 `scripts/figures/fig_*.py`) still tag themselves with "Finding 3",
 "Finding 4", or "Finding 5".  Those tags refer to the **legacy
 single-paper draft** that has since been split into two workshop
-papers (PECS f-SLA + WHPC GridPilot) and re-numbered.  The current
+papers (f-SLA + GridPilot) and re-numbered.  The current
 mapping is:
 
-| Legacy tag | Current PECS section / artefact |
+| Legacy tag | Current f-SLA paper section / artefact |
 |------------|---------------------------------|
 | Finding 3 | `sec:fsla` — the f-SLA contract + Dirichlet prior; injection counterfactual on the M100 trace.  Drivers: `inject_fsla_prior.py`, `fsla.py`. |
 | Finding 4 | Anti-gaming policy matrix in the body of `sec:fsla` and the per-tier-contribution / hyperparameter sweep figure (`tier_and_hyper`).  Drivers: `replay_policy_matrix.py`, `fsla_mechanisms.py`, `fig_{cfe_by_tier,swf_comparison,fairness_pareto,latency_per_tier}.py`. |
@@ -302,7 +302,7 @@ find the code that implemented it.
 | Operator-inferred flexibility (no f-SLA tier declaration) | bounded at ~30 % by Sukprasert et al.; leaves user knowledge on the table |
 | Closed-source release | a public reproducibility kit is what the field needs |
 | Only matplotlib architecture figures (no .pptx editable masters) | authors need to iterate on the diagrams in PowerPoint |
-| Single-paper Euro-Par submission | exceeded 12-page workshop limit; split into two orthogonal contributions (PECS + WHPC) on co-author advice |
+| Single-paper Euro-Par submission | exceeded 12-page workshop limit; split into two orthogonal contributions (f-SLA paper + GridPilot) on co-author advice |
 | `numpy<2.0` upper bound | no Python 3.13/3.14 wheels available; relaxed to `<3.0` |
 | `fork` start method for ProcessPoolExecutor | macOS default is `spawn`; module-level callables only; closures fail to pickle |
 | In-line `index()` calls inside hot loops | accidentally O(N²); replaced with `enumerate` |

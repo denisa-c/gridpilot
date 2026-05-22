@@ -7,7 +7,7 @@ Publication-ready 2×2 multi-year, multi-scale projection figure
 (operational-only — NO frequency-response component).
 
 Replaces the previous fig_scale_time_1x4.pdf with a clean version
-that the PECS 2026 paper (post-FFR removal) cites.
+that the f-SLA paper (post-FFR removal) cites.
 
 Inputs
 ------

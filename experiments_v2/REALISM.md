@@ -1,7 +1,7 @@
 # Realism axis for the v2 flexibility experiments
 
 This doc enumerates the realism improvements implemented in v2 and
-the additional improvements still pending.  It exists so the PECS
+the additional improvements still pending.  It exists so the f-SLA paper
 paper's Discussion section can cite a concrete list of *"what we did,
 what we know is missing, why each missing item matters"* — and so a
 reviewer can audit the claim.

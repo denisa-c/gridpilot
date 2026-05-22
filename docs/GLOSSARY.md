@@ -17,13 +17,13 @@ reproduction walkthrough see [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
 | **VCG** | Vickrey-Clarke-Groves | the canonical strategy-proof mechanism with monetary transfers; rejected in GridPilot because payment-free is required for academic HPC |
 | **DAA** | Deferred-Acceptance Auction | the M2 mechanism plug-in; strategy-proof in the full-information regime (Bichler et al.) |
 | **SWF** | Social Welfare Function | the optimisation objective in M2; we compare the α-fair family (utilitarian, α=0.5, Nash, leximin) |
-| **Jain** | Jain's fairness index | $\bigl(\sum x_i\bigr)^2 \big/ \bigl(n \sum x_i^2\bigr)$; reported as a sanity check on every PECS result |
+| **Jain** | Jain's fairness index | $\bigl(\sum x_i\bigr)^2 \big/ \bigl(n \sum x_i^2\bigr)$; reported as a sanity check on every f-SLA paper result |
 
 ## f-SLA contract
 
 | Term | Meaning |
 |---|---|
-| **f-SLA** | the *flexible Service-Level Agreement*: the user-side contract introduced in the PECS paper |
+| **f-SLA** | the *flexible Service-Level Agreement*: the user-side contract introduced in the f-SLA paper |
 | **Tier** | one of T0..T5; the user-declared deferrability/elasticity/spatial class |
 | **T0..T5** | T0 rigid, T1 hour, T2 day, T3 week, T4 elastic burst, T5 spatial |
 | **Window $W_j$** | the deferral / elastic / spatial window declared by tier (0 h..7 d) |
@@ -43,14 +43,14 @@ reproduction walkthrough see [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
 | Term | Expansion | Meaning |
 |---|---|---|
 | **CI** | Carbon Intensity | g CO₂eq per kWh of electricity at a grid at a point in time |
-| **CFE** | Carbon-Free Energy share | fraction of compute energy served by carbon-free electricity (Kamatar et al.); the **primary** PECS metric |
+| **CFE** | Carbon-Free Energy share | fraction of compute energy served by carbon-free electricity (Kamatar et al.); the **primary** f-SLA paper metric |
 | **Absolute CFE** | fraction of energy below 150 g CO₂eq/kWh (EU 2030 target) |
 | **Energy-weighted effective grid CI** | the mean grid CI experienced by completed jobs, weighted by their energy consumption (g/kWh) |
 | **ΔCO₂%** | percentage CO₂ reduction relative to a baseline policy; reported but *not* primary (inherits static-PUE assumption) |
 | **Avoided tonnage** | annualised CO₂ avoided in kt/y |
 | **Demand flexibility** | annual GWh that the contract makes movable across hours |
 
-## Workload-flexibility taxonomy (PECS Fig. workloads)
+## Workload-flexibility taxonomy (f-SLA paper Fig. workloads)
 
 | Class | Fraction of GPU·h | Maps to tier |
 |---|---|---|
@@ -60,7 +60,7 @@ reproduction walkthrough see [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
 | Batch / parallel | 10–20 % | T3 week |
 | Geo-shiftable | 5–15 % | T5 spatial |
 
-## Frequency response (WHPC paper)
+## Frequency response (GridPilot paper)
 
 | Term | Expansion | Meaning |
 |---|---|---|
@@ -71,8 +71,8 @@ reproduction walkthrough see [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
 | **TSO** | Transmission System Operator | the entity that procures FR (e.g. Statnett, RTE, Terna, …) |
 | **DVFS** | Dynamic Voltage and Frequency Scaling | GPU DVFS via NVML cap-update |
 | **NVML** | NVIDIA Management Library | the low-level API for `nvidia-smi -pl` cap updates; worst-case cap latency ~5 ms |
-| **PID** | Proportional-Integral-Derivative | Tier-1 controller in WHPC |
-| **AR(p)** | Autoregressive model of order p | Tier-2 controller (AR(4)) in WHPC |
+| **PID** | Proportional-Integral-Derivative | Tier-1 controller in GridPilot |
+| **AR(p)** | Autoregressive model of order p | Tier-2 controller (AR(4)) in GridPilot |
 | **RLS** | Recursive Least Squares | fits the AR(4) coefficients on a 30 s rolling window |
 | **AIC** | Akaike Information Criterion | model-order selection for AR(p) |
 | **TLA⁺** | Temporal Logic of Actions | the formal liveness spec the safety-island bypass satisfies |
@@ -82,7 +82,7 @@ reproduction walkthrough see [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
 | Term | Expansion | Meaning |
 |---|---|---|
 | **PUE** | Power Usage Effectiveness | facility power divided by IT power; a measure of cooling overhead |
-| **Instantaneous PUE** | time-varying PUE that the WHPC paper's four-component model exposes; binds the FR commitment at the facility meter |
+| **Instantaneous PUE** | time-varying PUE that the GridPilot paper's four-component model exposes; binds the FR commitment at the facility meter |
 | **Free cooling** | direct outdoor-air cooling when $T_{\mathrm{amb}} < $ wet-bulb threshold (12 °C) |
 | **L² / L³ floors** | the affinity-law floors that bind cooling power (pump 20 %, air 15 %) before IT power does |
 | **Marconi100 / M100** | the bundled production HPC trace and the calibration anchor for the cooling model |
@@ -91,7 +91,7 @@ reproduction walkthrough see [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
 
 | Term | Expansion | Meaning |
 |---|---|---|
-| **V100** | NVIDIA Volta-class GPU | the 3-GPU testbed for the WHPC paper's E1–E7 campaign |
+| **V100** | NVIDIA Volta-class GPU | the 3-GPU testbed for the GridPilot paper's E1–E7 campaign |
 | **H100/H200/MI300** | NVIDIA Hopper / AMD Instinct | next-generation accelerators with 1.5–2× higher power swings |
 | **M100** | Marconi100 | the bundled CINECA production trace (Antici et al. 2023) |
 | **EuroHPC JU** | European High-Performance Computing Joint Undertaking | funds SEANERGYS |

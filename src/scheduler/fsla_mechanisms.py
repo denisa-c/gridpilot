@@ -1,7 +1,7 @@
 """
 src/scheduler/fsla_mechanisms.py
 --------------------------------
-Anti-gaming mechanisms for the f-SLA contract (PECS Paper B §5.5,
+Anti-gaming mechanisms for the f-SLA contract (f-SLA paper B §5.5,
 Finding 4; FSLA_GAMIFICATION_VISION.md §2.1).
 
 Four mechanisms are implemented, exhausting the design space mapped
@@ -142,11 +142,11 @@ class AntiGamingMechanism(ABC):
 # M0 — Posted Price
 # ─────────────────────────────────────────────────────────────────────
 class PostedPrice(AntiGamingMechanism):
-    """Static credit schedule (PECS §5.2 v0 ladder).
+    """Static credit schedule (f-SLA paper §5.2 v0 ladder).
 
     Tier draws from the Dirichlet prior; the credit schedule is the
     ladder defined in ``scheduler/fsla.py``. No post-execution audit
-    is performed (mirrors the §5 v0 PECS posture). This is the
+    is performed (mirrors the §5 v0 f-SLA paper posture). This is the
     *weakest* mechanism we evaluate; under it we expect the NOM-IC
     violation rate to be the highest (H2 control condition).
     """
@@ -323,7 +323,7 @@ class AIBaselineAudit(AntiGamingMechanism):
         strictness : float
             λ in the penalty formula.  Default 0.05 is calibrated so
             that one-tier-up deviations are strictly negative in
-            expectation under the prior used in PECS §5.2.
+            expectation under the prior used in f-SLA paper §5.2.
         drift_rate : float
             Fraction of users who *adapt* to the AI baseline by
             increasing their declarations beyond the predicted tier

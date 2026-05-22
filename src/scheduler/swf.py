@@ -2,7 +2,7 @@
 src/scheduler/swf.py
 --------------------
 Social welfare functions and fairness metrics for the f-SLA policy
-matrix evaluation (PECS Paper B §5/§7, Finding 4).
+matrix evaluation (f-SLA paper B §5/§7, Finding 4).
 
 Implements the four-function family of Chen, Hua, Long & Zhu (2023,
 "A Guide to Formulating Fairness in Optimization", *Manufacturing &

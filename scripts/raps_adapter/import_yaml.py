@@ -8,7 +8,7 @@ release and reports their key fields (node count, IT design power,
 cooling efficiency, design PUE).  Re-export shim over
 ``src/integration/raps_config_adapter.py``.
 
-Backs the PECS 2026 §3.6 adapter reference.
+Backs the f-SLA paper §3.6 adapter reference.
 """
 from __future__ import annotations
 

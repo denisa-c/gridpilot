@@ -2,7 +2,7 @@
 # =====================================================================
 # experiments_v2/scripts/clean_rerun_all.sh
 # ---------------------------------------------------------------------
-# Master orchestrator for the clean-room PECS rerun.  Runs Phases 1
+# Master orchestrator for the clean-room f-SLA paper rerun.  Runs Phases 1
 # through 5 of the v2 plan with FAIL-STOP gating between phases.  No
 # downstream phase is allowed to execute if its upstream gate failed.
 #
@@ -19,7 +19,7 @@
 #       04_run_hyper_sweep.py       ← 576 cells, hyperparameter sweep
 #   5.  05_extract_macros.py        ← signed macros, no hardcoded prefix
 #       06_render_figures.py        ← v2 figure PDFs
-#       papers/build.sh             ← rebuild the PECS PDF
+#       papers/build.sh             ← rebuild the f-SLA paper PDF
 #
 # Scripts 02–06 are NOT YET WRITTEN.  This orchestrator runs Phases 1
 # and 2 to completion (the foundation) and then prints a clear

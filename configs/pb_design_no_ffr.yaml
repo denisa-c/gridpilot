@@ -1,4 +1,4 @@
-# PECS 2026 Plackett-Burman 5-factor 8-run design (no FFR factors)
+# f-SLA paper Plackett-Burman 5-factor 8-run design (no FFR factors)
 # ----------------------------------------------------------------
 # Replaces the old FFR-driven PB design with five PUE/scheduler/prior
 # factors, none of which depend on frequency-response participation.

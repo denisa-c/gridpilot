@@ -45,7 +45,7 @@ Citation
 ~~~~~~~~
 The f-SLA contract and this Monte Carlo + bootstrap protocol back
 Section 5.4 ("The f-SLA Contract: Eliciting Truthful Flexibility") and
-Finding 3 of the PECS 2026 paper.
+Finding 3 of the f-SLA paper.
 """
 from __future__ import annotations
 
@@ -71,7 +71,7 @@ except ModuleNotFoundError:  # pragma: no cover
 # ─────────────────────────────────────────────────────────────────────
 #: Six-tier ladder.  T4 (Elastic burst) is the CarbonScaler-style
 #: replica-scaling tier.  T5 (Spatial) is the GAIA-style geo-shifting
-#: tier introduced as a sketch in the PECS paper: a T5 job carries a
+#: tier introduced as a sketch in the f-SLA paper: a T5 job carries a
 #: user-declared non-empty spatial clause G_j (set of acceptable grid
 #: codes), and the dispatcher routes it to whichever grid in G_j is
 #: cleanest at dispatch time, charging the inter-site data-egress

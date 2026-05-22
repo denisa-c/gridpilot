@@ -2,9 +2,9 @@
 r"""
 experiments_v2/scripts/10_extract_paper_macros.py
 ==================================================
-Phase 5f --- compile ``figs/paper/results.tex`` for the PECS paper.
+Phase 5f --- compile ``figs/paper/results.tex`` for the f-SLA paper.
 
-The PECS manuscript (``papers/pecs2026/main.tex``) reads every
+The f-SLA paper manuscript (``papers/pecs2026/main.tex``) reads every
 headline number through ``\InputIfFileExists{figs/results.tex}``;
 the existing extractor (``05_extract_macros.py``) was built for the
 v1 ``country_sweep.csv`` schema and the now-superseded fsla_M3

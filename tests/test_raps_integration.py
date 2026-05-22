@@ -55,7 +55,7 @@ def test_marconi100_yaml_loads_with_expected_geometry():
 @raps_available
 def test_marconi100_it_design_power_matches_paper_anchor():
     """Per-node × node count must give an IT design within ±5 % of the
-    paper-anchor 1807.4 kW used in §3.6 of the PECS paper."""
+    paper-anchor 1807.4 kW used in §3.6 of the f-SLA paper."""
     from integration.raps_config_adapter import load_raps_system_config
     cfg = load_raps_system_config(RAPS_REPO, "marconi100")
     # Expected: 4×300 + 2×252 + 74.26 + 21 + 45 = 1844.26 W/node × 980 = 1807.4 kW

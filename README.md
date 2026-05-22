@@ -3,30 +3,30 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Data: CC-BY 4.0](https://img.shields.io/badge/Data-CC--BY%204.0-lightblue.svg)](licenses/CC-BY-4.0.txt)
 
-Open reproducibility kit for the two companion Euro-Par 2026 Workshop papers on flexible, grid-responsive AI/HPC supercomputers — one on the upstream user-side contract (PECS 2026), one on the downstream sub-second actuation controller (WHPC 2026). The kit also exposes a broader toolset for grid-services research beyond the published headlines (Tier-2 utilities in `docs/RELEASE_CONTENTS.md`).
+Open reproducibility kit for the two companion papers on flexible, grid-responsive AI/HPC supercomputers — the upstream user-side contract (f-SLA) and the downstream sub-second actuation controller (GridPilot). The kit also exposes a broader toolset for grid-services research beyond the published headlines (Tier-2 utilities in `docs/RELEASE_CONTENTS.md`).
 
 ## What this kit is
 
 GridPilot is two complementary layers that compose vertically:
 
-- **Downstream actuation (WHPC 2026):** a three-tier predictive controller (per-GPU at 200 Hz, per-host at 1 Hz, per-cluster hourly) plus an out-of-band safety-island bypass, validated on a real 3× NVIDIA V100 SXM2 testbed. Median end-to-end Fast-Frequency-Reserve response is ≈ 97 ms (max ≤ 102 ms across 90 trials), ~7× faster than the 700 ms Nordic FFR budget. A four-component instantaneous PUE correction reconciles the IT-side commitment with the facility-meter settlement, closing 2.5–5.8 pp of cooling-overhead drag across six European grids.
-- **Upstream contract (PECS 2026):** the *f-SLA* — a six-tier ladder (T0 rigid, T1 hour, T2 day, T3 week, T4 elastic burst, T5 spatial) under which job submitters declare deferrability, elasticity, and spatial flexibility in exchange for proportional service credits. Four anti-gaming mechanisms M0–M3 are evaluated for non-obvious manipulability against a synthetic-user prior. The headline replay is on the Marconi100 (M100) production trace against six European grids (SE, CH, FR, IT, DE, PL) using ENTSO-E hourly carbon intensity.
+- **Downstream actuation (GridPilot):** a three-tier predictive controller (per-GPU at 200 Hz, per-host at 1 Hz, per-cluster hourly) plus an out-of-band safety-island bypass, validated on a real 3× NVIDIA V100 SXM2 testbed. Median end-to-end Fast-Frequency-Reserve response is ≈ 97 ms (max ≤ 102 ms across 90 trials), ~7× faster than the 700 ms Nordic FFR budget. A four-component instantaneous PUE correction reconciles the IT-side commitment with the facility-meter settlement, closing 2.5–5.8 pp of cooling-overhead drag across six European grids.
+- **Upstream contract (f-SLA):** the *f-SLA* — a six-tier ladder (T0 rigid, T1 hour, T2 day, T3 week, T4 elastic burst, T5 spatial) under which job submitters declare deferrability, elasticity, and spatial flexibility in exchange for proportional service credits. Four anti-gaming mechanisms M0–M3 are evaluated for non-obvious manipulability against a synthetic-user prior. The headline replay is on the Marconi100 (M100) production trace against six European grids (SE, CH, FR, IT, DE, PL) using ENTSO-E hourly carbon intensity.
 
 The two layers compose vertically: user-side declarations elicit flexibility, the controller dispatches it deterministically at the facility meter. GridPilot also positions as the grid-facing layer of the emerging HPC PowerStack, composing with in-cluster power managers (PowerSched, EAR, GEOPM) through the REGALE DDS bus and aligning with the EuroHPC JU SEANERGYS reference architecture.
 
 ## Architecture at a glance
 
-### Upstream — f-SLA contract + carbon-aware scheduler (PECS 2026)
+### Upstream — f-SLA contract + carbon-aware scheduler
 
 The user-side path: job submitters declare a tier on a six-step flexibility ladder; an AI baseline shows the tier the system expects ("beat the AI to earn credit"); the f-SLA accounting layer logs *(predicted, declared, realised)* triples and maintains the credit/leaderboard ledger; the carbon-aware scheduler defers each job within its declared tier window to a low-CI hour (T4 instead scales replicas 0.5×–2× on the CI signal at constant makespan).
 
-![f-SLA contract and carbon-aware scheduler architecture (PECS 2026): six-tier ladder, AI baseline, accounting layer, scheduler, electricity grid](figs/architecture_fsla.png)
+![f-SLA contract and carbon-aware scheduler architecture: six-tier ladder, AI baseline, accounting layer, scheduler, electricity grid](figs/architecture_fsla.png)
 
-### Downstream — three-tier controller + safety island (WHPC 2026)
+### Downstream — three-tier controller + safety island
 
 The facility-side path: a TSO frequency trigger drops into the out-of-band *safety island* (real-time-C bypass, GPU cap written directly), and in parallel cascades through the three software tiers — Tier 3 (hourly) cluster operating-point selector with cooling-overhead correction, Tier 2 (1 Hz) per-host coordinator with AR(4) prediction, Tier 1 (200 Hz) per-GPU PID over NVML. Power settles within ~20 ms at the GPU and the facility meter reflects it ~90 ms after the trigger.
 
-![Three-tier predictive controller and safety-island architecture (WHPC 2026): TSO trigger and safety island feeding the hourly / 1 Hz / 200 Hz cascade down to GPU silicon and the facility meter](figs/architecture_controller.png)
+![Three-tier predictive controller and safety-island architecture: TSO trigger and safety island feeding the hourly / 1 Hz / 200 Hz cascade down to GPU silicon and the facility meter](figs/architecture_controller.png)
 
 ## Release scope
 
@@ -51,7 +51,7 @@ PYTHONPATH=src pytest -q tests/
 
 ## Reproduce the published results
 
-### PECS 2026 — the f-SLA contract
+### f-SLA — the upstream contract
 
 ```bash
 # 1. Headline taxonomy sweep + mechanism sweep (~20 min on 4 workers).
@@ -60,7 +60,7 @@ PYTHONPATH=experiments_v2/src python3 \
 PYTHONPATH=experiments_v2/src python3 \
     experiments_v2/scripts/04d_run_mechanism_sweep.py
 
-# 2. Render the three PECS figures + extract macros into results.tex.
+# 2. Render the three f-SLA figures + extract macros into results.tex.
 PYTHONPATH=experiments_v2/src python3 \
     experiments_v2/scripts/07_render_seasonal_figure.py
 PYTHONPATH=experiments_v2/src python3 \
@@ -76,7 +76,7 @@ PYTHONPATH=experiments_v2/src python3 \
     --out      ../papers/pecs2026/figs/results.tex
 ```
 
-### WHPC 2026 — the GridPilot controller
+### GridPilot — the downstream controller
 
 ```bash
 # 1. Hardware experiments (on a comparable 3xV100 SXM2 node).
@@ -120,8 +120,8 @@ gridpilot/
 │   ├── scripts/
 │   │   ├── 00_unit_audit.py        ← closed-form sanity tests
 │   │   ├── 01_single_cell_smoketest.py
-│   │   ├── 04c_run_taxonomy_sweep.py    ← headline PECS Table 2 + WHPC E8
-│   │   ├── 04d_run_mechanism_sweep.py   ← PECS Table 3 (M0–M3)
+│   │   ├── 04c_run_taxonomy_sweep.py    ← headline f-SLA paper Table 2 + GridPilot E8
+│   │   ├── 04d_run_mechanism_sweep.py   ← f-SLA paper Table 3 (M0–M3)
 │   │   ├── 07_render_seasonal_figure.py
 │   │   ├── 09_render_paper_figures.py
 │   │   ├── 10_extract_paper_macros.py
@@ -135,14 +135,14 @@ gridpilot/
 │   ├── m100/
 │   │   ├── fetch_real_ci_series.py ← ENTSO-E A75+A11 consumption-mix fetcher
 │   │   └── build_extended_trace.py ← F4-fixed trace builder
-│   ├── v100/                       ← WHPC hardware controller stack
+│   ├── v100/                       ← GridPilot hardware controller stack
 │   │   ├── controller/             ← Tier-1/2/3 controller
 │   │   ├── experiments/E{2..7}_*.py
 │   │   ├── safety_island/          ← TLA+-spec'd safety-island simulator
 │   │   ├── workloads/              ← three workload archetypes
 │   │   ├── figure_scripts/
 │   │   └── tests/
-│   ├── pue_model/cooling_decomposition.py     ← four-component PUE (WHPC §3.3)
+│   ├── pue_model/cooling_decomposition.py     ← four-component PUE (GridPilot §3.3)
 │   ├── projection/multiyear_50mw.py           ← multi-year facility-scale projection
 │   ├── sensitivity/run_plackett_burman.py     ← PB screening on dispatcher hyperparameters
 │   ├── workflows/                  ← synthetic DAG generators + replay
@@ -165,7 +165,7 @@ gridpilot/
 │   ├── CONFIGURE_NEW_COUNTRY.md    ← how to add a country
 │   ├── COUNTRY_PARAMETER_SOURCES.md
 │   ├── EXADIGIT_RAPS_SETUP.md
-│   └── V100_MEASUREMENT_PROTOCOL.md  ← WHPC hardware-campaign protocol
+│   └── V100_MEASUREMENT_PROTOCOL.md  ← GridPilot hardware-campaign protocol
 ├── tests/                          ← pytest suite
 ├── benchmarks/                     ← micro-benchmarks
 └── licenses/                       ← third-party data licence acknowledgements
@@ -210,11 +210,11 @@ If you use this kit, please cite the two companion papers:
   year      = {2026}
 }
 
-@inproceedings{fsla-pecs-2026,
-  author    = {Anonymous (double-blind)},
-  title     = {{f-SLA}: A User-Side Contract for Truthful Workload Flexibility towards Carbon-Free Supercomputing},
-  booktitle = {Proceedings of Euro-Par 2026 Workshops (PECS)},
-  year      = {2026}
+@article{fsla-2026,
+  author  = {Anonymous (double-blind)},
+  title   = {{f-SLA}: A User-Side Contract for Truthful Workload Flexibility towards Carbon-Free Supercomputing},
+  journal = {(under review)},
+  year    = {2026}
 }
 ```
 

@@ -41,7 +41,7 @@ echo "==> 1b/4 Seed stub country_sweep.csv (multi-country CFE-lift)"
 PYTHONPATH=src "${PYTHON}" scripts/multicountry/seed_country_sweep_stub.py \
     --output-dir data/m100/country_sweep
 
-echo "==> 2/4  Render PECS policy-matrix figures (B&W-print friendly)"
+echo "==> 2/4  Render f-SLA paper policy-matrix figures (B&W-print friendly)"
 for fig in fig_cfe_by_tier fig_swf_comparison fig_fairness_pareto fig_latency_per_tier; do
     PYTHONPATH=src "${PYTHON}" "scripts/figures/${fig}.py" \
         --matrix data/m100/policy_matrix/policy_matrix.csv \
@@ -68,7 +68,7 @@ fi
 echo "==> 3b/4 Extract paper macros from on-disk experiment outputs"
 # This populates papers/<paper>/figs/results.tex with \newcommand
 # macros that the .tex sources read via \input{results.tex}.  The
-# script emits a STUB warning if PECS data came from the literature-
+# script emits a STUB warning if f-SLA paper data came from the literature-
 # anchored stub instead of a real replay_country_sweep.py run.
 PYTHONPATH=src "${PYTHON}" scripts/figures/extract_paper_macros.py
 
@@ -82,7 +82,7 @@ PYTHONPATH=src "${PYTHON}" scripts/figures/fig_fsla_architecture.py \
 PYTHONPATH=src "${PYTHON}" scripts/figures/fig_gridpilot_architecture.py \
     --out "${PROJECT_ROOT}/papers/whpc2026/figs/architecture.pdf"
 
-# Legacy artefact kept for the older PECS draft that referenced
+# Legacy artefact kept for the older f-SLA paper draft that referenced
 # fig_gamification_architecture.pdf; tries TikZ first then matplotlib.
 if ( cd figs && "${PDFLATEX}" -interaction=nonstopmode -halt-on-error \
         fig_gamification_architecture.tex >/dev/null 2>&1 ); then
@@ -95,7 +95,7 @@ fi
 echo
 echo "OK  figures and architecture PDFs ready in:"
 echo "    ${ROOT}/figs/                              (stage-from source)"
-echo "    ${PROJECT_ROOT}/papers/pecs2026/figs/      (PECS-ready)"
-echo "    ${PROJECT_ROOT}/papers/whpc2026/figs/      (WHPC-ready)"
+echo "    ${PROJECT_ROOT}/papers/pecs2026/figs/      (f-SLA paper-ready)"
+echo "    ${PROJECT_ROOT}/papers/whpc2026/figs/      (GridPilot-ready)"
 echo "    architecture.pptx in each paper folder     (refine in PowerPoint)"
 echo "Rebuild the papers with:  ./papers/build.sh"

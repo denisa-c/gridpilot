@@ -2,7 +2,7 @@
 
 **Release scope:** the public GitHub release is the `gridpilot/`
 reproducibility kit only.  LaTeX sources for the companion papers
-(PECS 2026, WHPC 2026) are **not** published on GitHub — they ship
+(f-SLA paper, GridPilot paper) are **not** published on GitHub — they ship
 through the respective conference proceedings (Springer LNCS) and/or
 arXiv.  Both papers remain in the working repository during
 development but are excluded from the release tarball.
@@ -15,7 +15,7 @@ auditable, and free of the v1-era bugs catalogued in
 
 The release is organised in two tiers:
 
-- **Tier 1** — scripts the two papers (PECS 2026, WHPC 2026) reproduce
+- **Tier 1** — scripts the two papers (f-SLA paper, GridPilot paper) reproduce
   directly. Removing any one of these breaks reproduction of a figure
   or a table.
 - **Tier 2** — general-purpose utilities and follow-on tooling that
@@ -35,7 +35,7 @@ preserved by keeping). The driver for the cleanup is
 These are exactly what `pdflatex` consumes to regenerate the published
 PDFs from the released data.
 
-### Carbon-aware contract pipeline (PECS 2026 + WHPC E8 multi-country sweep)
+### Carbon-aware contract pipeline (f-SLA paper + GridPilot E8 multi-country sweep)
 
 ```
 gridpilot/experiments_v2/
@@ -51,8 +51,8 @@ gridpilot/experiments_v2/
 ├── scripts/
 │   ├── 00_unit_audit.py                       # closed-form sanity tests for accounting.py
 │   ├── 01_single_cell_smoketest.py            # first-pass validation
-│   ├── 04c_run_taxonomy_sweep.py              # PECS Table 2 + WHPC E8 headline driver
-│   ├── 04d_run_mechanism_sweep.py             # PECS Table 3 M0–M3 evaluation
+│   ├── 04c_run_taxonomy_sweep.py              # f-SLA paper Table 2 + GridPilot E8 headline driver
+│   ├── 04d_run_mechanism_sweep.py             # f-SLA paper Table 3 M0–M3 evaluation
 │   ├── 07_render_seasonal_figure.py           # renders fig_paper_seasonal_2x2_linearC.pdf
 │   ├── 09_render_paper_figures.py             # renders fig_paper_headline.pdf
 │   ├── 10_extract_paper_macros.py             # produces results.tex consumed by both papers
@@ -76,11 +76,11 @@ gridpilot/scripts/m100/
 └── build_extended_trace.py                    # builds the F4-fixed extended trace from raw sacct
 ```
 
-### V100 hardware controller (WHPC 2026 only)
+### V100 hardware controller (GridPilot paper only)
 
 ```
 gridpilot/scripts/
-├── pue_model/cooling_decomposition.py         # 4-component PUE model (WHPC §3.3, Eq. 4)
+├── pue_model/cooling_decomposition.py         # 4-component PUE model (GridPilot §3.3, Eq. 4)
 └── v100/
     ├── controller/hierarchical_controller.py  # Tier-1/2/3 controller stack
     ├── safety_island/simulator/island_simulator.py  # TLA+-spec'd safety island
@@ -103,7 +103,7 @@ gridpilot/scripts/
         └── test_compare_v100_vs_m100.py
 ```
 
-E5 and E6 are not WHPC headline experiments, but they ship in the
+E5 and E6 are not GridPilot headline experiments, but they ship in the
 kit as usability tooling — the supervisory-Pareto experiment and the
 multi-GPU+CPU coordination experiment are valid extensions a future
 user might re-run on a comparable testbed.
@@ -138,8 +138,8 @@ gridpilot/scripts/
 │   └── frontier_calibration_check.py          # same for Frontier
 ├── figures/
 │   ├── _figstyle.py                           # shared matplotlib style
-│   ├── fig_country_pue_aware.py               # WHPC §5.country PUE-aware figure
-│   ├── fig_multiscale_operational_only.py     # WHPC fig_multiscale_controller subpanel
+│   ├── fig_country_pue_aware.py               # GridPilot §5.country PUE-aware figure
+│   ├── fig_multiscale_operational_only.py     # GridPilot fig_multiscale_controller subpanel
 │   └── fig_workflow_dag_savings.py            # synthetic-workflow savings panel
 └── m100/__init__.py                           # module marker (kept for import structure)
 ```
@@ -214,7 +214,7 @@ cd gridpilot
 python -m pip install -r requirements.txt
 ```
 
-### Reproduce the PECS 2026 paper
+### Reproduce the f-SLA paper
 
 ```bash
 # 1. Taxonomy + mechanism sweeps (≈ 20 min on 4 workers)
@@ -236,7 +236,7 @@ PYTHONPATH=experiments_v2/src python3 experiments_v2/scripts/10_extract_paper_ma
 cd ../papers/pecs2026 && pdflatex main && bibtex main && pdflatex main && pdflatex main
 ```
 
-### Reproduce the WHPC 2026 paper (V100 testbed)
+### Reproduce the GridPilot paper (V100 testbed)
 
 ```bash
 # 1. Hardware experiments (on a comparable 3×V100 node)

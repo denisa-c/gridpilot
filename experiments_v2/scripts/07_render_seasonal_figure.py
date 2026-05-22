@@ -18,7 +18,7 @@ Panels (left-to-right, top-to-bottom):
 
 Style and colour palette are imported from
 ``experiments_v2/src/figure_style`` so this figure looks like the
-PECS publication figure pack (09_render_paper_figures.py) at a glance.
+f-SLA paper publication figure pack (09_render_paper_figures.py) at a glance.
 
 Missing data → that panel shows an ``(awaiting <input>)`` placeholder
 so the figure compiles cleanly during incremental build-out.

@@ -144,7 +144,7 @@ def apply_rcparams() -> None:
     Call once at the top of every render script before constructing
     any figure.  Sets serif fonts, Type-42 PDF embedding (camera-
     ready safe), and removes the top / right spines for the clean
-    look the screenshots in the PECS review request showed.
+    look the screenshots in the f-SLA paper review request showed.
     """
     plt.rcParams.update({
         "pdf.fonttype": 42, "ps.fonttype": 42,

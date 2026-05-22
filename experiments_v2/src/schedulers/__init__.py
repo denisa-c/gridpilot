@@ -2,7 +2,7 @@
 gridpilot/experiments_v2/src/schedulers/
 ========================================
 Clean-room hand-rolled implementations of the canonical published
-HPC schedulers that the PECS f-SLA paper compares against, plus a
+HPC schedulers that the f-SLA paper compares against, plus a
 shared accounting module so every scheduler's absolute numbers are
 directly comparable.
 

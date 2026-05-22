@@ -3,7 +3,7 @@
 scripts/sensitivity/run_plackett_burman.py
 ==========================================
 
-Run the 5-factor 8-run Plackett-Burman sensitivity sweep on the PECS
+Run the 5-factor 8-run Plackett-Burman sensitivity sweep on the f-SLA paper
 operational-only 50 MW DE 2025 headline figure.  Replaces the
 previous FFR-anchored design with five PUE/scheduler/prior factors:
 
